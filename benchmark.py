@@ -4,44 +4,44 @@ from app.meta_api import MetaGraphAPIClient
 import httpx
 from unittest.mock import patch, MagicMock
 
-class MockResponse:
-    def __init__(self):
-        self.status_code = 200
-    def raise_for_status(self):
-        pass
-    def json(self):
-        return {"id": "123", "message": "hello"}
+# Mock data
+posts_data = {
+    "data": [{"id": f"post_{i}"} for i in range(5)]
+}
+comments_data = {
+    "data": [{"id": f"comment_{i}"} for i in range(5)]
+}
+likes_data = {
+    "data": [{"id": f"like_{i}"} for i in range(2)]
+}
 
-async def mock_get(*args, **kwargs):
-    return MockResponse()
+async def mock_get_posts(*args, **kwargs):
+    await asyncio.sleep(0.1)
+    return posts_data
 
-async def mock_post(*args, **kwargs):
-    return MockResponse()
+async def mock_get_comments(*args, **kwargs):
+    await asyncio.sleep(0.1)
+    return comments_data
+
+async def mock_get_likes(*args, **kwargs):
+    await asyncio.sleep(0.1)
+    return likes_data
 
 async def run_benchmark():
-    client = MetaGraphAPIClient()
+    # Patch the methods on the instance or class
+    with patch.object(MetaGraphAPIClient, 'get_posts', side_effect=mock_get_posts), \
+         patch.object(MetaGraphAPIClient, 'get_comments', side_effect=mock_get_comments), \
+         patch.object(MetaGraphAPIClient, 'get_likes', side_effect=mock_get_likes):
 
-    # We patch httpx.AsyncClient.get and post to just return a mock response,
-    # so we're only measuring the overhead of client creation and python execution.
-    with patch('httpx.AsyncClient.get', side_effect=mock_get), \
-         patch('httpx.AsyncClient.post', side_effect=mock_post):
+        # Import inside to make sure it uses the patched client if it imports it directly,
+        # but cron imports meta_client from app.meta_api
+        import cron
 
-        # Warmup
-        for _ in range(10):
-            await client.get_posts()
+        start_time = time.time()
+        await cron.fetch_and_process()
+        end_time = time.time()
 
-        start = time.perf_counter()
-        for _ in range(1000):
-            await client.get_posts()
-        get_time = time.perf_counter() - start
-
-        start = time.perf_counter()
-        for _ in range(1000):
-            await client.post_comment("123", "msg")
-        post_time = time.perf_counter() - start
-
-        print(f"Baseline - 1000 GET requests: {get_time:.4f}s")
-        print(f"Baseline - 1000 POST requests: {post_time:.4f}s")
+        print(f"\nExecution time: {end_time - start_time:.2f} seconds")
 
 if __name__ == "__main__":
     asyncio.run(run_benchmark())
