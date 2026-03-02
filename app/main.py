@@ -61,9 +61,6 @@ async def verify_webhook(
 
 @app.post("/webhook", summary="Webhook notification endpoint")
 async def handle_webhook(payload: WebhookPayload):
-    # Log or process the incoming webhook notifications
-    print("Received webhook payload:", payload.model_dump())
-
     # Process Instagram actions like comments, etc.
     if payload.object == "instagram":
         for entry in payload.entry:
