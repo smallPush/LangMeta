@@ -1,3 +1,8 @@
+import os
+os.environ["META_ACCESS_TOKEN"] = "test_access_token"
+os.environ["META_ACCOUNT_ID"] = "test_account_id"
+os.environ["META_WEBHOOK_VERIFY_TOKEN"] = "your_webhook_verify_token_here"
+
 from fastapi.testclient import TestClient
 from app.main import app
 
@@ -20,6 +25,10 @@ def test_webhook_get_failure():
     response = client.get("/webhook?hub.mode=subscribe&hub.challenge=1158201444&hub.verify_token=wrong_token")
     assert response.status_code == 403
 
+import hmac
+import hashlib
+import json
+
 def test_webhook_post():
     payload = {
         "object": "instagram",
@@ -39,9 +48,39 @@ def test_webhook_post():
             }
         ]
     }
-    response = client.post("/webhook", json=payload)
+    body = json.dumps(payload).encode("utf-8")
+    signature = hmac.new(
+        settings.meta_app_secret.encode("utf-8"),
+        body,
+        hashlib.sha256
+    ).hexdigest()
+
+    response = client.post(
+        "/webhook",
+        content=body,
+        headers={
+            "X-Hub-Signature-256": f"sha256={signature}",
+            "Content-Type": "application/json"
+        }
+    )
     assert response.status_code == 200
     assert response.json() == {"status": "success"}
+
+def test_webhook_post_missing_signature():
+    payload = {"object": "instagram", "entry": []}
+    response = client.post("/webhook", json=payload)
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Missing signature"}
+
+def test_webhook_post_invalid_signature():
+    payload = {"object": "instagram", "entry": []}
+    response = client.post(
+        "/webhook",
+        json=payload,
+        headers={"X-Hub-Signature-256": "sha256=invalid"}
+    )
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Invalid signature"}
 
 @patch("app.meta_api.MetaGraphAPIClient.get_likes", new_callable=AsyncMock)
 def test_get_likes(mock_get_likes):
@@ -50,41 +89,35 @@ def test_get_likes(mock_get_likes):
     assert response.status_code == 200
     assert response.json() == {"data": [{"id": "123", "name": "Test User"}], "paging": None}
 
+
 import httpx
 
-@patch("app.meta_api.MetaGraphAPIClient.get_posts", new_callable=AsyncMock)
-def test_get_posts_success(mock_get_posts):
-    mock_get_posts.return_value = {
-        "data": [
-            {"id": "post_1", "message": "First post", "created_time": "2023-01-01T00:00:00+0000"}
-        ],
-        "paging": None
+@patch("app.meta_api.MetaGraphAPIClient.get_comments", new_callable=AsyncMock)
+def test_get_comments(mock_get_comments):
+    mock_get_comments.return_value = {
+        "data": [{"id": "1", "message": "Test comment", "created_time": "2024-01-01T00:00:00+0000"}]
     }
-    response = client.get("/posts?limit=10")
+    response = client.get("/posts/test_post_id/comments")
     assert response.status_code == 200
     assert response.json() == {
-        "data": [
-            {"id": "post_1", "message": "First post", "created_time": "2023-01-01T00:00:00+0000"}
-        ],
+        "data": [{"id": "1", "message": "Test comment", "created_time": "2024-01-01T00:00:00+0000"}],
         "paging": None
     }
-    mock_get_posts.assert_called_once_with(limit=10)
 
-@patch("app.meta_api.MetaGraphAPIClient.get_posts", new_callable=AsyncMock)
-def test_get_posts_http_error(mock_get_posts):
-    mock_request = httpx.Request("GET", "https://graph.facebook.com")
-    mock_response = httpx.Response(400, request=mock_request)
-    mock_get_posts.side_effect = httpx.HTTPStatusError(
-        "Bad Request", request=mock_request, response=mock_response
-    )
+@patch("app.meta_api.MetaGraphAPIClient.get_comments", new_callable=AsyncMock)
+def test_get_comments_http_error(mock_get_comments):
+    mock_request = httpx.Request("GET", "https://graph.facebook.com/v18.0/test_post_id/comments")
+    mock_response = httpx.Response(404, request=mock_request)
+    mock_get_comments.side_effect = httpx.HTTPStatusError("Not Found", request=mock_request, response=mock_response)
 
-    response = client.get("/posts")
-    assert response.status_code == 400
+    response = client.get("/posts/test_post_id/comments")
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Not Found"}
 
-@patch("app.meta_api.MetaGraphAPIClient.get_posts", new_callable=AsyncMock)
-def test_get_posts_exception(mock_get_posts):
-    mock_get_posts.side_effect = Exception("General error")
+@patch("app.meta_api.MetaGraphAPIClient.get_comments", new_callable=AsyncMock)
+def test_get_comments_internal_error(mock_get_comments):
+    mock_get_comments.side_effect = Exception("Internal error")
 
-    response = client.get("/posts")
+    response = client.get("/posts/test_post_id/comments")
     assert response.status_code == 500
-    assert response.json() == {"detail": "General error"}
+    assert response.json() == {"detail": "Internal error"}
