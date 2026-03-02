@@ -27,3 +27,15 @@ class Comment(BaseModel):
 class CommentListResponse(BaseModel):
     data: List[Comment]
     paging: Optional[Dict[str, Any]] = None
+
+class LikeUser(BaseModel):
+    id: str
+    name: Optional[str] = None
+
+class LikeListResponse(BaseModel):
+    data: List[LikeUser]
+    paging: Optional[Dict[str, Any]] = None
+
+class WebhookPayload(BaseModel):
+    object: str
+    entry: List[Dict[str, Any]]
