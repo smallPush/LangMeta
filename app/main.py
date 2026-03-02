@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Path, Query
 import httpx
+import hmac
 from typing import Optional
 from app.models import (
     CommentRequest,
@@ -53,7 +54,7 @@ async def verify_webhook(
     hub_challenge: str = Query(None, alias="hub.challenge"),
     hub_verify_token: str = Query(None, alias="hub.verify_token")
 ):
-    if hub_mode == "subscribe" and hub_verify_token == settings.meta_webhook_verify_token:
+    if hub_mode == "subscribe" and hub_verify_token is not None and hmac.compare_digest(hub_verify_token, settings.meta_webhook_verify_token):
         print("Webhook verified successfully!")
         return PlainTextResponse(content=hub_challenge, status_code=200)
     raise HTTPException(status_code=403, detail="Verification failed")
