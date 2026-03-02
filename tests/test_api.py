@@ -49,3 +49,18 @@ def test_get_likes(mock_get_likes):
     response = client.get("/test_object_id/likes")
     assert response.status_code == 200
     assert response.json() == {"data": [{"id": "123", "name": "Test User"}], "paging": None}
+
+@patch("app.meta_api.MetaGraphAPIClient.get_likes", new_callable=AsyncMock)
+def test_get_likes_http_status_error(mock_get_likes):
+    import httpx
+
+    # Create a mock response for the HTTPStatusError
+    mock_response = httpx.Response(status_code=400, request=httpx.Request("GET", "https://example.com"))
+
+    # Configure the mock to raise HTTPStatusError
+    mock_get_likes.side_effect = httpx.HTTPStatusError("Bad Request", request=mock_response.request, response=mock_response)
+
+    response = client.get("/test_object_id/likes")
+
+    assert response.status_code == 400
+    assert response.json() == {"detail": "Bad Request"}
