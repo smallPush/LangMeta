@@ -49,3 +49,42 @@ def test_get_likes(mock_get_likes):
     response = client.get("/test_object_id/likes")
     assert response.status_code == 200
     assert response.json() == {"data": [{"id": "123", "name": "Test User"}], "paging": None}
+
+import httpx
+
+@patch("app.meta_api.MetaGraphAPIClient.get_posts", new_callable=AsyncMock)
+def test_get_posts_success(mock_get_posts):
+    mock_get_posts.return_value = {
+        "data": [
+            {"id": "post_1", "message": "First post", "created_time": "2023-01-01T00:00:00+0000"}
+        ],
+        "paging": None
+    }
+    response = client.get("/posts?limit=10")
+    assert response.status_code == 200
+    assert response.json() == {
+        "data": [
+            {"id": "post_1", "message": "First post", "created_time": "2023-01-01T00:00:00+0000"}
+        ],
+        "paging": None
+    }
+    mock_get_posts.assert_called_once_with(limit=10)
+
+@patch("app.meta_api.MetaGraphAPIClient.get_posts", new_callable=AsyncMock)
+def test_get_posts_http_error(mock_get_posts):
+    mock_request = httpx.Request("GET", "https://graph.facebook.com")
+    mock_response = httpx.Response(400, request=mock_request)
+    mock_get_posts.side_effect = httpx.HTTPStatusError(
+        "Bad Request", request=mock_request, response=mock_response
+    )
+
+    response = client.get("/posts")
+    assert response.status_code == 400
+
+@patch("app.meta_api.MetaGraphAPIClient.get_posts", new_callable=AsyncMock)
+def test_get_posts_exception(mock_get_posts):
+    mock_get_posts.side_effect = Exception("General error")
+
+    response = client.get("/posts")
+    assert response.status_code == 500
+    assert response.json() == {"detail": "General error"}
