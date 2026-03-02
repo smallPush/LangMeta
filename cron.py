@@ -1,6 +1,15 @@
 import asyncio
 from app.meta_api import meta_client
 
+async def process_comment(comment):
+    comment_id = comment.get("id")
+    print(f"  Processing comment: {comment_id}")
+
+    # Fetch likes for the comment
+    comment_likes_response = await meta_client.get_likes(comment_id, limit=5)
+    comment_likes = comment_likes_response.get("data", [])
+    print(f"    Comment {comment_id} has {len(comment_likes)} likes.")
+
 async def fetch_and_process():
     print("Running cron job to fetch posts, comments, and likes...")
     try:
@@ -21,14 +30,9 @@ async def fetch_and_process():
             comments_response = await meta_client.get_comments(post_id, limit=5)
             comments = comments_response.get("data", [])
 
-            for comment in comments:
-                comment_id = comment.get("id")
-                print(f"  Processing comment: {comment_id}")
-
-                # Fetch likes for the comment
-                comment_likes_response = await meta_client.get_likes(comment_id, limit=5)
-                comment_likes = comment_likes_response.get("data", [])
-                print(f"    Comment {comment_id} has {len(comment_likes)} likes.")
+            tasks = [process_comment(comment) for comment in comments]
+            if tasks:
+                await asyncio.gather(*tasks)
 
     except Exception as e:
         print(f"An error occurred during cron execution: {e}")
