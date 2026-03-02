@@ -1,6 +1,5 @@
 from fastapi import FastAPI, HTTPException, Path, Query
 import httpx
-from typing import Optional
 from app.models import (
     CommentRequest,
     CommentResponse,
