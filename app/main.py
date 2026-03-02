@@ -24,6 +24,13 @@ async def lifespan(app: FastAPI):
     yield
     await meta_client.aclose()
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Nothing to do, client is lazily initialized
+    yield
+    # Shutdown: Close the meta_client
+    await meta_client.aclose()
+
 app = FastAPI(
     title="Meta Graph API Integration",
     description="A FastAPI project to interact with Meta Graph API for a specific account. Future integration with LangChain.",
