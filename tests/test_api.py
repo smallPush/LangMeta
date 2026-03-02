@@ -1,5 +1,12 @@
+import os
+os.environ["META_ACCESS_TOKEN"] = "test_access_token"
+os.environ["META_ACCOUNT_ID"] = "test_account_id"
+os.environ["META_WEBHOOK_VERIFY_TOKEN"] = "your_webhook_verify_token_here"
+
 from fastapi.testclient import TestClient
 from app.main import app
+import httpx
+from unittest.mock import patch, AsyncMock, MagicMock
 
 client = TestClient(app)
 
@@ -7,9 +14,6 @@ def test_health_check():
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
-
-from unittest.mock import patch, AsyncMock
-from app.config import settings
 
 def test_webhook_get_success():
     response = client.get("/webhook?hub.mode=subscribe&hub.challenge=1158201444&hub.verify_token=your_webhook_verify_token_here")
@@ -19,6 +23,10 @@ def test_webhook_get_success():
 def test_webhook_get_failure():
     response = client.get("/webhook?hub.mode=subscribe&hub.challenge=1158201444&hub.verify_token=wrong_token")
     assert response.status_code == 403
+
+import hmac
+import hashlib
+import json
 
 def test_webhook_post():
     payload = {
@@ -39,9 +47,39 @@ def test_webhook_post():
             }
         ]
     }
-    response = client.post("/webhook", json=payload)
+    body = json.dumps(payload).encode("utf-8")
+    signature = hmac.new(
+        settings.meta_app_secret.encode("utf-8"),
+        body,
+        hashlib.sha256
+    ).hexdigest()
+
+    response = client.post(
+        "/webhook",
+        content=body,
+        headers={
+            "X-Hub-Signature-256": f"sha256={signature}",
+            "Content-Type": "application/json"
+        }
+    )
     assert response.status_code == 200
     assert response.json() == {"status": "success"}
+
+def test_webhook_post_missing_signature():
+    payload = {"object": "instagram", "entry": []}
+    response = client.post("/webhook", json=payload)
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Missing signature"}
+
+def test_webhook_post_invalid_signature():
+    payload = {"object": "instagram", "entry": []}
+    response = client.post(
+        "/webhook",
+        json=payload,
+        headers={"X-Hub-Signature-256": "sha256=invalid"}
+    )
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Invalid signature"}
 
 @patch("app.meta_api.MetaGraphAPIClient.get_likes", new_callable=AsyncMock)
 def test_get_likes(mock_get_likes):
@@ -50,29 +88,35 @@ def test_get_likes(mock_get_likes):
     assert response.status_code == 200
     assert response.json() == {"data": [{"id": "123", "name": "Test User"}], "paging": None}
 
+
 import httpx
 
-@patch("app.meta_api.MetaGraphAPIClient.like_object", new_callable=AsyncMock)
-def test_like_comment_success(mock_like_object):
-    mock_like_object.return_value = {"success": True}
-    response = client.post("/comments/12345/like")
+@patch("app.meta_api.MetaGraphAPIClient.get_comments", new_callable=AsyncMock)
+def test_get_comments(mock_get_comments):
+    mock_get_comments.return_value = {
+        "data": [{"id": "1", "message": "Test comment", "created_time": "2024-01-01T00:00:00+0000"}]
+    }
+    response = client.get("/posts/test_post_id/comments")
     assert response.status_code == 200
-    assert response.json() == {"success": True}
-    mock_like_object.assert_called_once_with("12345")
+    assert response.json() == {
+        "data": [{"id": "1", "message": "Test comment", "created_time": "2024-01-01T00:00:00+0000"}],
+        "paging": None
+    }
 
-@patch("app.meta_api.MetaGraphAPIClient.like_object", new_callable=AsyncMock)
-def test_like_comment_http_error(mock_like_object):
-    mock_response = httpx.Response(status_code=400, request=httpx.Request("POST", "https://example.com"), json={"error": "Bad Request"})
-    mock_like_object.side_effect = httpx.HTTPStatusError("Bad Request", request=mock_response.request, response=mock_response)
-    response = client.post("/comments/12345/like")
-    assert response.status_code == 400
-    assert response.json() == {"detail": "Bad Request"}
-    mock_like_object.assert_called_once_with("12345")
+@patch("app.meta_api.MetaGraphAPIClient.get_comments", new_callable=AsyncMock)
+def test_get_comments_http_error(mock_get_comments):
+    mock_request = httpx.Request("GET", "https://graph.facebook.com/v18.0/test_post_id/comments")
+    mock_response = httpx.Response(404, request=mock_request)
+    mock_get_comments.side_effect = httpx.HTTPStatusError("Not Found", request=mock_request, response=mock_response)
 
-@patch("app.meta_api.MetaGraphAPIClient.like_object", new_callable=AsyncMock)
-def test_like_comment_generic_error(mock_like_object):
-    mock_like_object.side_effect = Exception("Internal Server Error")
-    response = client.post("/comments/12345/like")
+    response = client.get("/posts/test_post_id/comments")
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Not Found"}
+
+@patch("app.meta_api.MetaGraphAPIClient.get_comments", new_callable=AsyncMock)
+def test_get_comments_internal_error(mock_get_comments):
+    mock_get_comments.side_effect = Exception("Internal error")
+
+    response = client.get("/posts/test_post_id/comments")
     assert response.status_code == 500
-    assert response.json() == {"detail": "Internal Server Error"}
-    mock_like_object.assert_called_once_with("12345")
+    assert response.json() == {"detail": "Internal error"}
