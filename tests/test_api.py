@@ -20,6 +20,10 @@ def test_webhook_get_failure():
     response = client.get("/webhook?hub.mode=subscribe&hub.challenge=1158201444&hub.verify_token=wrong_token")
     assert response.status_code == 403
 
+import hmac
+import hashlib
+import json
+
 def test_webhook_post():
     payload = {
         "object": "instagram",
@@ -39,9 +43,39 @@ def test_webhook_post():
             }
         ]
     }
-    response = client.post("/webhook", json=payload)
+    body = json.dumps(payload).encode("utf-8")
+    signature = hmac.new(
+        settings.meta_app_secret.encode("utf-8"),
+        body,
+        hashlib.sha256
+    ).hexdigest()
+
+    response = client.post(
+        "/webhook",
+        content=body,
+        headers={
+            "X-Hub-Signature-256": f"sha256={signature}",
+            "Content-Type": "application/json"
+        }
+    )
     assert response.status_code == 200
     assert response.json() == {"status": "success"}
+
+def test_webhook_post_missing_signature():
+    payload = {"object": "instagram", "entry": []}
+    response = client.post("/webhook", json=payload)
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Missing signature"}
+
+def test_webhook_post_invalid_signature():
+    payload = {"object": "instagram", "entry": []}
+    response = client.post(
+        "/webhook",
+        json=payload,
+        headers={"X-Hub-Signature-256": "sha256=invalid"}
+    )
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Invalid signature"}
 
 @patch("app.meta_api.MetaGraphAPIClient.get_likes", new_callable=AsyncMock)
 def test_get_likes(mock_get_likes):

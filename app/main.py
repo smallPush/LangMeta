@@ -1,5 +1,7 @@
-from fastapi import FastAPI, HTTPException, Path, Query
+from fastapi import FastAPI, HTTPException, Path, Query, Request, Header
 import httpx
+import hmac
+import hashlib
 from typing import Optional
 from app.models import (
     CommentRequest,
@@ -59,7 +61,34 @@ async def verify_webhook(
     raise HTTPException(status_code=403, detail="Verification failed")
 
 @app.post("/webhook", summary="Webhook notification endpoint")
-async def handle_webhook(payload: WebhookPayload):
+async def handle_webhook(
+    request: Request,
+    payload: WebhookPayload,
+    x_hub_signature_256: Optional[str] = Header(None)
+):
+    if not x_hub_signature_256:
+        raise HTTPException(status_code=401, detail="Missing signature")
+
+    # The signature looks like 'sha256=...'
+    if not x_hub_signature_256.startswith("sha256="):
+        raise HTTPException(status_code=401, detail="Invalid signature format")
+
+    signature = x_hub_signature_256.split("=")[1]
+
+    # Read raw body
+    body = await request.body()
+
+    # Calculate HMAC SHA256 signature
+    expected_signature = hmac.new(
+        settings.meta_app_secret.encode("utf-8"),
+        body,
+        hashlib.sha256
+    ).hexdigest()
+
+    # Compare signatures
+    if not hmac.compare_digest(expected_signature, signature):
+        raise HTTPException(status_code=401, detail="Invalid signature")
+
     # Log or process the incoming webhook notifications
     print("Received webhook payload:", payload.model_dump())
 
