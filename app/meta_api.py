@@ -7,6 +7,12 @@ class MetaGraphAPIClient:
         self.base_url = f"https://graph.facebook.com/{settings.meta_api_version}"
         self.access_token = settings.meta_access_token
         self.account_id = settings.meta_account_id
+        self._client: Optional[httpx.AsyncClient] = None
+
+    async def get_client(self) -> httpx.AsyncClient:
+        if self._client is None or self._client.is_closed:
+            self._client = httpx.AsyncClient()
+        return self._client
 
     async def _get(self, endpoint: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         url = f"{self.base_url}/{endpoint}"
@@ -14,19 +20,24 @@ class MetaGraphAPIClient:
             params = {}
         params["access_token"] = self.access_token
 
-        async with httpx.AsyncClient() as client:
-            response = await client.get(url, params=params)
-            response.raise_for_status()
-            return response.json()
+        client = await self.get_client()
+        response = await client.get(url, params=params)
+        response.raise_for_status()
+        return response.json()
 
     async def _post(self, endpoint: str, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         url = f"{self.base_url}/{endpoint}"
         params = {"access_token": self.access_token}
         
-        async with httpx.AsyncClient() as client:
-            response = await client.post(url, params=params, json=data)
-            response.raise_for_status()
-            return response.json()
+        client = await self.get_client()
+        response = await client.post(url, params=params, json=data)
+        response.raise_for_status()
+        return response.json()
+
+    async def aclose(self):
+        if self._client is not None:
+            await self._client.aclose()
+            self._client = None
 
     async def get_posts(self, limit: int = 10) -> Dict[str, Any]:
         """Fetch posts from the configured account."""

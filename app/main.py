@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Path, Query
 import httpx
 from typing import Optional
@@ -14,10 +15,18 @@ from app.meta_api import meta_client
 from app.config import settings
 from fastapi.responses import PlainTextResponse
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Nothing to do, client is lazily initialized
+    yield
+    # Shutdown: Close the meta_client
+    await meta_client.aclose()
+
 app = FastAPI(
     title="Meta Graph API Integration",
     description="A FastAPI project to interact with Meta Graph API for a specific account. Future integration with LangChain.",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 @app.get("/health", summary="Health check endpoint")
