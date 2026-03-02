@@ -1,13 +1,18 @@
 from fastapi import FastAPI, HTTPException, Path, Query
 import httpx
+from typing import Optional
 from app.models import (
     CommentRequest,
     CommentResponse,
     LikeResponse,
     PostListResponse,
-    CommentListResponse
+    CommentListResponse,
+    LikeListResponse,
+    WebhookPayload
 )
 from app.meta_api import meta_client
+from app.config import settings
+from fastapi.responses import PlainTextResponse
 
 app = FastAPI(
     title="Meta Graph API Integration",
@@ -28,6 +33,43 @@ async def get_posts(limit: int = Query(10, description="Number of posts to retri
         raise HTTPException(status_code=e.response.status_code, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/{object_id}/likes", response_model=LikeListResponse, summary="Get likes for a post or comment")
+async def get_likes(
+    object_id: str = Path(..., description="The ID of the post or comment"),
+    limit: int = Query(10, description="Number of likes to retrieve")
+):
+    try:
+        data = await meta_client.get_likes(object_id, limit=limit)
+        return data
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(status_code=e.response.status_code, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/webhook", summary="Webhook verification endpoint")
+async def verify_webhook(
+    hub_mode: str = Query(None, alias="hub.mode"),
+    hub_challenge: str = Query(None, alias="hub.challenge"),
+    hub_verify_token: str = Query(None, alias="hub.verify_token")
+):
+    if hub_mode == "subscribe" and hub_verify_token == settings.meta_webhook_verify_token:
+        print("Webhook verified successfully!")
+        return PlainTextResponse(content=hub_challenge, status_code=200)
+    raise HTTPException(status_code=403, detail="Verification failed")
+
+@app.post("/webhook", summary="Webhook notification endpoint")
+async def handle_webhook(payload: WebhookPayload):
+    # Log or process the incoming webhook notifications
+    print("Received webhook payload:", payload.model_dump())
+
+    # Process Instagram actions like comments, etc.
+    if payload.object == "instagram":
+        for entry in payload.entry:
+            # Add specific logic here based on webhook changes
+            pass
+
+    return {"status": "success"}
 
 @app.get("/posts/{post_id}/comments", response_model=CommentListResponse, summary="Get comments for a post")
 async def get_comments(

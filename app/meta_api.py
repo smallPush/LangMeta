@@ -51,4 +51,10 @@ class MetaGraphAPIClient:
         endpoint = f"{object_id}/likes"
         return await self._post(endpoint)
 
+    async def get_likes(self, object_id: str, limit: int = 10) -> Dict[str, Any]:
+        """Fetch likes for a specific object (post or comment)."""
+        endpoint = f"{object_id}/likes"
+        params = {"limit": limit}
+        return await self._get(endpoint, params)
+
 meta_client = MetaGraphAPIClient()
