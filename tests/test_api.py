@@ -46,6 +46,24 @@ def test_webhook_post():
 @patch("app.meta_api.MetaGraphAPIClient.get_likes", new_callable=AsyncMock)
 def test_get_likes(mock_get_likes):
     mock_get_likes.return_value = {"data": [{"id": "123", "name": "Test User"}]}
-    response = client.get("/test_object_id/likes")
+    headers = {"X-API-Key": settings.api_key}
+    response = client.get("/test_object_id/likes", headers=headers)
     assert response.status_code == 200
     assert response.json() == {"data": [{"id": "123", "name": "Test User"}], "paging": None}
+
+def test_missing_api_key():
+    response = client.get("/posts")
+    assert response.status_code == 403
+
+def test_invalid_api_key():
+    headers = {"X-API-Key": "invalid_api_key"}
+    response = client.get("/posts", headers=headers)
+    assert response.status_code == 403
+
+@patch("app.meta_api.MetaGraphAPIClient.get_posts", new_callable=AsyncMock)
+def test_get_posts_with_valid_api_key(mock_get_posts):
+    mock_get_posts.return_value = {"data": [{"id": "456", "message": "Test Post", "created_time": "2023-01-01T00:00:00+0000"}]}
+    headers = {"X-API-Key": settings.api_key}
+    response = client.get("/posts", headers=headers)
+    assert response.status_code == 200
+    assert response.json() == {"data": [{"id": "456", "message": "Test Post", "created_time": "2023-01-01T00:00:00+0000"}], "paging": None}

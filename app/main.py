@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException, Path, Query
+from fastapi import FastAPI, HTTPException, Path, Query, Security, Depends
+from fastapi.security import APIKeyHeader
 import httpx
 from typing import Optional
 from app.models import (
@@ -20,12 +21,26 @@ app = FastAPI(
     version="1.0.0"
 )
 
+import secrets
+
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+async def get_api_key(api_key_header: str = Security(api_key_header)):
+    if api_key_header and secrets.compare_digest(api_key_header, settings.api_key):
+        return api_key_header
+    raise HTTPException(
+        status_code=403, detail="Could not validate credentials"
+    )
+
 @app.get("/health", summary="Health check endpoint")
 async def health_check():
     return {"status": "ok"}
 
 @app.get("/posts", response_model=PostListResponse, summary="Get account posts")
-async def get_posts(limit: int = Query(10, description="Number of posts to retrieve")):
+async def get_posts(
+    limit: int = Query(10, description="Number of posts to retrieve"),
+    api_key: str = Depends(get_api_key)
+):
     try:
         data = await meta_client.get_posts(limit=limit)
         return data
@@ -37,7 +52,8 @@ async def get_posts(limit: int = Query(10, description="Number of posts to retri
 @app.get("/{object_id}/likes", response_model=LikeListResponse, summary="Get likes for a post or comment")
 async def get_likes(
     object_id: str = Path(..., description="The ID of the post or comment"),
-    limit: int = Query(10, description="Number of likes to retrieve")
+    limit: int = Query(10, description="Number of likes to retrieve"),
+    api_key: str = Depends(get_api_key)
 ):
     try:
         data = await meta_client.get_likes(object_id, limit=limit)
@@ -74,7 +90,8 @@ async def handle_webhook(payload: WebhookPayload):
 @app.get("/posts/{post_id}/comments", response_model=CommentListResponse, summary="Get comments for a post")
 async def get_comments(
     post_id: str = Path(..., description="The ID of the post"),
-    limit: int = Query(10, description="Number of comments to retrieve")
+    limit: int = Query(10, description="Number of comments to retrieve"),
+    api_key: str = Depends(get_api_key)
 ):
     try:
         data = await meta_client.get_comments(post_id, limit=limit)
@@ -87,7 +104,8 @@ async def get_comments(
 @app.post("/posts/{post_id}/comments", response_model=CommentResponse, summary="Post a comment on a post")
 async def create_comment(
     comment: CommentRequest,
-    post_id: str = Path(..., description="The ID of the post to comment on")
+    post_id: str = Path(..., description="The ID of the post to comment on"),
+    api_key: str = Depends(get_api_key)
 ):
     try:
         data = await meta_client.post_comment(post_id, message=comment.message)
@@ -99,7 +117,8 @@ async def create_comment(
 
 @app.post("/comments/{comment_id}/like", response_model=LikeResponse, summary="Like a comment")
 async def like_comment(
-    comment_id: str = Path(..., description="The ID of the comment to like")
+    comment_id: str = Path(..., description="The ID of the comment to like"),
+    api_key: str = Depends(get_api_key)
 ):
     try:
         data = await meta_client.like_object(comment_id)
