@@ -5,6 +5,8 @@ os.environ["META_WEBHOOK_VERIFY_TOKEN"] = "your_webhook_verify_token_here"
 
 from fastapi.testclient import TestClient
 from app.main import app
+import httpx
+from unittest.mock import patch, AsyncMock, MagicMock
 
 client = TestClient(app)
 
@@ -12,9 +14,6 @@ def test_health_check():
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
-
-from unittest.mock import patch, AsyncMock
-from app.config import settings
 
 def test_webhook_get_success():
     response = client.get("/webhook?hub.mode=subscribe&hub.challenge=1158201444&hub.verify_token=your_webhook_verify_token_here")
