@@ -1,3 +1,8 @@
+import os
+os.environ["META_ACCESS_TOKEN"] = "test_access_token"
+os.environ["META_ACCOUNT_ID"] = "test_account_id"
+os.environ["META_WEBHOOK_VERIFY_TOKEN"] = "your_webhook_verify_token_here"
+
 from fastapi.testclient import TestClient
 from app.main import app
 
@@ -49,3 +54,36 @@ def test_get_likes(mock_get_likes):
     response = client.get("/test_object_id/likes")
     assert response.status_code == 200
     assert response.json() == {"data": [{"id": "123", "name": "Test User"}], "paging": None}
+
+
+import httpx
+
+@patch("app.meta_api.MetaGraphAPIClient.get_comments", new_callable=AsyncMock)
+def test_get_comments(mock_get_comments):
+    mock_get_comments.return_value = {
+        "data": [{"id": "1", "message": "Test comment", "created_time": "2024-01-01T00:00:00+0000"}]
+    }
+    response = client.get("/posts/test_post_id/comments")
+    assert response.status_code == 200
+    assert response.json() == {
+        "data": [{"id": "1", "message": "Test comment", "created_time": "2024-01-01T00:00:00+0000"}],
+        "paging": None
+    }
+
+@patch("app.meta_api.MetaGraphAPIClient.get_comments", new_callable=AsyncMock)
+def test_get_comments_http_error(mock_get_comments):
+    mock_request = httpx.Request("GET", "https://graph.facebook.com/v18.0/test_post_id/comments")
+    mock_response = httpx.Response(404, request=mock_request)
+    mock_get_comments.side_effect = httpx.HTTPStatusError("Not Found", request=mock_request, response=mock_response)
+
+    response = client.get("/posts/test_post_id/comments")
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Not Found"}
+
+@patch("app.meta_api.MetaGraphAPIClient.get_comments", new_callable=AsyncMock)
+def test_get_comments_internal_error(mock_get_comments):
+    mock_get_comments.side_effect = Exception("Internal error")
+
+    response = client.get("/posts/test_post_id/comments")
+    assert response.status_code == 500
+    assert response.json() == {"detail": "Internal error"}

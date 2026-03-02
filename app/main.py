@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Path, Query, Request
 import httpx
+import hmac
 from typing import Optional
 from app.models import (
     CommentRequest,
@@ -13,6 +14,8 @@ from app.models import (
 from app.meta_api import meta_client
 from app.config import settings
 from fastapi.responses import PlainTextResponse, JSONResponse
+from fastapi import Request
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 app = FastAPI(
     title="Meta Graph API Integration",
@@ -21,12 +24,24 @@ app = FastAPI(
 )
 
 @app.exception_handler(httpx.HTTPStatusError)
-async def httpx_status_error_handler(request: Request, exc: httpx.HTTPStatusError):
-    return JSONResponse(status_code=exc.response.status_code, content={"detail": str(exc)})
+async def http_status_error_handler(request: Request, exc: httpx.HTTPStatusError):
+    return JSONResponse(
+        status_code=exc.response.status_code,
+        content={"detail": str(exc)},
+    )
 
 @app.exception_handler(Exception)
-async def general_exception_handler(request: Request, exc: Exception):
-    return JSONResponse(status_code=500, content={"detail": str(exc)})
+async def generic_exception_handler(request: Request, exc: Exception):
+    if isinstance(exc, StarletteHTTPException):
+        # Allow standard FastAPI/Starlette HTTPExceptions to be handled normally
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": exc.detail},
+        )
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc)},
+    )
 
 @app.get("/health", summary="Health check endpoint")
 async def health_check():
@@ -51,16 +66,13 @@ async def verify_webhook(
     hub_challenge: str = Query(None, alias="hub.challenge"),
     hub_verify_token: str = Query(None, alias="hub.verify_token")
 ):
-    if hub_mode == "subscribe" and hub_verify_token == settings.meta_webhook_verify_token:
+    if hub_mode == "subscribe" and hub_verify_token is not None and hmac.compare_digest(hub_verify_token, settings.meta_webhook_verify_token):
         print("Webhook verified successfully!")
         return PlainTextResponse(content=hub_challenge, status_code=200)
     raise HTTPException(status_code=403, detail="Verification failed")
 
 @app.post("/webhook", summary="Webhook notification endpoint")
 async def handle_webhook(payload: WebhookPayload):
-    # Log or process the incoming webhook notifications
-    print("Received webhook payload:", payload.model_dump())
-
     # Process Instagram actions like comments, etc.
     if payload.object == "instagram":
         for entry in payload.entry:
