@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Path, Query, Request, Header
 import httpx
 import hmac
@@ -18,10 +19,16 @@ from fastapi.responses import PlainTextResponse, JSONResponse
 from fastapi import Request
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+    await meta_client.aclose()
+
 app = FastAPI(
     title="Meta Graph API Integration",
     description="A FastAPI project to interact with Meta Graph API for a specific account. Future integration with LangChain.",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 @app.exception_handler(httpx.HTTPStatusError)

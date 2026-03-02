@@ -1,8 +1,8 @@
-import time
 import asyncio
-from unittest.mock import patch, AsyncMock
-
+import time
 from app.meta_api import MetaGraphAPIClient
+import httpx
+from unittest.mock import patch, MagicMock
 
 # Mock data
 posts_data = {
