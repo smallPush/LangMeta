@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Path, Query
 import httpx
 from typing import Optional
-from app.models import (
+from app.domain.models import (
     CommentRequest,
     CommentResponse,
     LikeResponse,
@@ -10,9 +10,13 @@ from app.models import (
     LikeListResponse,
     WebhookPayload
 )
-from app.meta_api import meta_client
+from app.infrastructure.adapters.meta_api_adapter import MetaAPIAdapter
+from app.application.services.meta_service import MetaService
 from app.config import settings
 from fastapi.responses import PlainTextResponse
+
+meta_adapter = MetaAPIAdapter()
+meta_service = MetaService(meta_adapter)
 
 app = FastAPI(
     title="Meta Graph API Integration",
@@ -27,7 +31,7 @@ async def health_check():
 @app.get("/posts", response_model=PostListResponse, summary="Get account posts")
 async def get_posts(limit: int = Query(10, description="Number of posts to retrieve")):
     try:
-        data = await meta_client.get_posts(limit=limit)
+        data = await meta_service.get_posts(limit=limit)
         return data
     except httpx.HTTPStatusError as e:
         raise HTTPException(status_code=e.response.status_code, detail=str(e))
@@ -40,7 +44,7 @@ async def get_likes(
     limit: int = Query(10, description="Number of likes to retrieve")
 ):
     try:
-        data = await meta_client.get_likes(object_id, limit=limit)
+        data = await meta_service.get_likes(object_id, limit=limit)
         return data
     except httpx.HTTPStatusError as e:
         raise HTTPException(status_code=e.response.status_code, detail=str(e))
@@ -77,7 +81,7 @@ async def get_comments(
     limit: int = Query(10, description="Number of comments to retrieve")
 ):
     try:
-        data = await meta_client.get_comments(post_id, limit=limit)
+        data = await meta_service.get_comments(post_id, limit=limit)
         return data
     except httpx.HTTPStatusError as e:
         raise HTTPException(status_code=e.response.status_code, detail=str(e))
@@ -90,7 +94,7 @@ async def create_comment(
     post_id: str = Path(..., description="The ID of the post to comment on")
 ):
     try:
-        data = await meta_client.post_comment(post_id, message=comment.message)
+        data = await meta_service.post_comment(post_id, message=comment.message)
         return data
     except httpx.HTTPStatusError as e:
         raise HTTPException(status_code=e.response.status_code, detail=str(e))
@@ -102,7 +106,7 @@ async def like_comment(
     comment_id: str = Path(..., description="The ID of the comment to like")
 ):
     try:
-        data = await meta_client.like_object(comment_id)
+        data = await meta_service.like_object(comment_id)
         return data
     except httpx.HTTPStatusError as e:
         raise HTTPException(status_code=e.response.status_code, detail=str(e))

@@ -1,11 +1,15 @@
 import asyncio
-from app.meta_api import meta_client
+from app.infrastructure.adapters.meta_api_adapter import MetaAPIAdapter
+from app.application.services.meta_service import MetaService
 
 async def fetch_and_process():
     print("Running cron job to fetch posts, comments, and likes...")
     try:
+        adapter = MetaAPIAdapter()
+        service = MetaService(adapter)
+
         # Fetch posts
-        posts_response = await meta_client.get_posts(limit=5)
+        posts_response = await service.get_posts(limit=5)
         posts = posts_response.get("data", [])
 
         for post in posts:
@@ -13,12 +17,12 @@ async def fetch_and_process():
             print(f"Processing post: {post_id}")
 
             # Fetch likes for the post
-            post_likes_response = await meta_client.get_likes(post_id, limit=5)
+            post_likes_response = await service.get_likes(post_id, limit=5)
             post_likes = post_likes_response.get("data", [])
             print(f"  Post {post_id} has {len(post_likes)} likes.")
 
             # Fetch comments for the post
-            comments_response = await meta_client.get_comments(post_id, limit=5)
+            comments_response = await service.get_comments(post_id, limit=5)
             comments = comments_response.get("data", [])
 
             for comment in comments:
@@ -26,7 +30,7 @@ async def fetch_and_process():
                 print(f"  Processing comment: {comment_id}")
 
                 # Fetch likes for the comment
-                comment_likes_response = await meta_client.get_likes(comment_id, limit=5)
+                comment_likes_response = await service.get_likes(comment_id, limit=5)
                 comment_likes = comment_likes_response.get("data", [])
                 print(f"    Comment {comment_id} has {len(comment_likes)} likes.")
 

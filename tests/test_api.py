@@ -43,9 +43,26 @@ def test_webhook_post():
     assert response.status_code == 200
     assert response.json() == {"status": "success"}
 
-@patch("app.meta_api.MetaGraphAPIClient.get_likes", new_callable=AsyncMock)
+@patch("app.application.services.meta_service.MetaService.get_likes", new_callable=AsyncMock)
 def test_get_likes(mock_get_likes):
     mock_get_likes.return_value = {"data": [{"id": "123", "name": "Test User"}]}
     response = client.get("/test_object_id/likes")
     assert response.status_code == 200
     assert response.json() == {"data": [{"id": "123", "name": "Test User"}], "paging": None}
+
+import pytest
+from app.infrastructure.adapters.fake_meta_adapter import FakeMetaAdapter
+
+@pytest.mark.asyncio
+async def test_fake_adapter_get_posts():
+    adapter = FakeMetaAdapter()
+    result = await adapter.get_posts(limit=1)
+    assert len(result["data"]) == 1
+    assert result["data"][0]["id"] == "post1"
+
+@pytest.mark.asyncio
+async def test_fake_adapter_get_likes():
+    adapter = FakeMetaAdapter()
+    result = await adapter.get_likes("some_id", limit=1)
+    assert len(result["data"]) == 1
+    assert result["data"][0]["id"] == "user1"
