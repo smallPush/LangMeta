@@ -1,0 +1,19 @@
+{
+  "data": [
+    {
+      "id": "10000123456789",
+      "name": "Jane Doe"
+    },
+    {
+      "id": "10000987654321",
+      "name": "John Smith"
+    }
+  ],
+  "paging": {
+    "cursors": {
+      "before": "QVFIU...",
+      "after": "QVFIU..."
+    },
+    "next": "https://graph.facebook.com/v19.0/123456789_987654321/likes?limit=2&after=QVFIU..."
+  }
+}

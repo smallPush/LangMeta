@@ -1,0 +1,21 @@
+{
+  "data": [
+    {
+      "id": "987654321_111111111",
+      "message": "Great post!",
+      "created_time": "2024-03-03T11:00:00+0000"
+    },
+    {
+      "id": "987654321_222222222",
+      "message": "Thanks for sharing.",
+      "created_time": "2024-03-03T12:00:00+0000"
+    }
+  ],
+  "paging": {
+    "cursors": {
+      "before": "QVFIU...",
+      "after": "QVFIU..."
+    },
+    "next": "https://graph.facebook.com/v19.0/987654321/comments?limit=2&after=QVFIU..."
+  }
+}
