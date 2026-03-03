@@ -1,6 +1,6 @@
 import asyncio
 import time
-from app.meta_api import MetaGraphAPIClient
+from app.adapters.meta_api import MetaGraphAPIClient
 import httpx
 from unittest.mock import patch, MagicMock
 
@@ -34,7 +34,7 @@ async def run_benchmark():
          patch.object(MetaGraphAPIClient, 'get_likes', side_effect=mock_get_likes):
 
         # Import inside to make sure it uses the patched client if it imports it directly,
-        # but cron imports meta_client from app.meta_api
+        # but cron imports meta_client from app.adapters.meta_api
         import cron
 
         start_time = time.time()

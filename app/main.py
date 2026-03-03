@@ -4,7 +4,7 @@ import httpx
 import hmac
 import hashlib
 from typing import Optional
-from app.models import (
+from app.domain.models import (
     CommentRequest,
     CommentResponse,
     LikeResponse,
@@ -13,23 +13,22 @@ from app.models import (
     LikeListResponse,
     WebhookPayload
 )
-from app.meta_api import meta_client
+from app.adapters.meta_api import MetaGraphAPIClient
+from app.services.social_media_service import SocialMediaService
 from app.config import settings
 from fastapi.responses import PlainTextResponse, JSONResponse
 from fastapi import Request
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    yield
-    await meta_client.aclose()
+meta_client = MetaGraphAPIClient()
+social_media_service = SocialMediaService(meta_client)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: Nothing to do, client is lazily initialized
     yield
     # Shutdown: Close the meta_client
-    await meta_client.aclose()
+    await social_media_service.aclose()
 
 app = FastAPI(
     title="Meta Graph API Integration",
@@ -64,7 +63,7 @@ async def health_check():
 
 @app.get("/posts", response_model=PostListResponse, summary="Get account posts")
 async def get_posts(limit: int = Query(10, description="Number of posts to retrieve")):
-    data = await meta_client.get_posts(limit=limit)
+    data = await social_media_service.get_posts(limit=limit)
     return data
 
 @app.get("/{object_id}/likes", response_model=LikeListResponse, summary="Get likes for a post or comment")
@@ -72,7 +71,7 @@ async def get_likes(
     object_id: str = Path(..., description="The ID of the post or comment"),
     limit: int = Query(10, description="Number of likes to retrieve")
 ):
-    data = await meta_client.get_likes(object_id, limit=limit)
+    data = await social_media_service.get_likes(object_id, limit=limit)
     return data
 
 @app.get("/webhook", summary="Webhook verification endpoint")
@@ -131,7 +130,7 @@ async def get_comments(
     post_id: str = Path(..., description="The ID of the post"),
     limit: int = Query(10, description="Number of comments to retrieve")
 ):
-    data = await meta_client.get_comments(post_id, limit=limit)
+    data = await social_media_service.get_comments(post_id, limit=limit)
     return data
 
 @app.post("/posts/{post_id}/comments", response_model=CommentResponse, summary="Post a comment on a post")
@@ -139,12 +138,12 @@ async def create_comment(
     comment: CommentRequest,
     post_id: str = Path(..., description="The ID of the post to comment on")
 ):
-    data = await meta_client.post_comment(post_id, message=comment.message)
+    data = await social_media_service.post_comment(post_id, message=comment.message)
     return data
 
 @app.post("/comments/{comment_id}/like", response_model=LikeResponse, summary="Like a comment")
 async def like_comment(
     comment_id: str = Path(..., description="The ID of the comment to like")
 ):
-    data = await meta_client.like_object(comment_id)
+    data = await social_media_service.like_object(comment_id)
     return data

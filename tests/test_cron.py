@@ -4,9 +4,9 @@ import builtins
 from cron import fetch_and_process
 
 @pytest.mark.asyncio
-@patch("app.meta_api.meta_client.get_posts", new_callable=AsyncMock)
-@patch("app.meta_api.meta_client.get_likes", new_callable=AsyncMock)
-@patch("app.meta_api.meta_client.get_comments", new_callable=AsyncMock)
+@patch("app.services.social_media_service.SocialMediaService.get_posts", new_callable=AsyncMock)
+@patch("app.services.social_media_service.SocialMediaService.get_likes", new_callable=AsyncMock)
+@patch("app.services.social_media_service.SocialMediaService.get_comments", new_callable=AsyncMock)
 @patch("builtins.print")
 async def test_fetch_and_process_success(mock_print, mock_get_comments, mock_get_likes, mock_get_posts):
     # Setup mock returns
@@ -54,7 +54,7 @@ async def test_fetch_and_process_success(mock_print, mock_get_comments, mock_get
     mock_print.assert_any_call("    Comment comment_1 has 1 likes.")
 
 @pytest.mark.asyncio
-@patch("app.meta_api.meta_client.get_posts", new_callable=AsyncMock)
+@patch("app.services.social_media_service.SocialMediaService.get_posts", new_callable=AsyncMock)
 @patch("builtins.print")
 async def test_fetch_and_process_exception(mock_print, mock_get_posts):
     # Setup mock to raise exception

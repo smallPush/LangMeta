@@ -16,9 +16,9 @@ async def mock_get_likes(object_id, limit=10):
     return {"data": [{"id": f"like_{object_id}_{i}"} for i in range(limit)]}
 
 async def run_benchmark():
-    with patch("cron.meta_client.get_posts", new_callable=AsyncMock, side_effect=mock_get_posts), \
-         patch("cron.meta_client.get_comments", new_callable=AsyncMock, side_effect=mock_get_comments), \
-         patch("cron.meta_client.get_likes", new_callable=AsyncMock, side_effect=mock_get_likes):
+    with patch("app.services.social_media_service.SocialMediaService.get_posts", new_callable=AsyncMock, side_effect=mock_get_posts), \
+         patch("app.services.social_media_service.SocialMediaService.get_comments", new_callable=AsyncMock, side_effect=mock_get_comments), \
+         patch("app.services.social_media_service.SocialMediaService.get_likes", new_callable=AsyncMock, side_effect=mock_get_likes):
 
         start_time = time.perf_counter()
         await cron.fetch_and_process()

@@ -1,8 +1,9 @@
 import httpx
 from typing import Dict, Any, Optional
 from app.config import settings
+from app.ports.social_media import SocialMediaPort
 
-class MetaGraphAPIClient:
+class MetaGraphAPIClient(SocialMediaPort):
     def __init__(self):
         self.base_url = f"https://graph.facebook.com/{settings.meta_api_version}"
         self.access_token = settings.meta_access_token
@@ -59,5 +60,3 @@ class MetaGraphAPIClient:
         endpoint = f"{object_id}/likes"
         params = {"limit": limit}
         return await self._get(endpoint, params)
-
-meta_client = MetaGraphAPIClient()
