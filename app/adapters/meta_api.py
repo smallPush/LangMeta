@@ -1,7 +1,9 @@
 import httpx
 from typing import Dict, Any, Optional
+import time
 from app.config import settings
 from app.ports.social_media import SocialMediaPort
+from app.services.logger_service import api_logger
 
 class MetaGraphAPIClient(SocialMediaPort):
     def __init__(self):
@@ -20,17 +22,61 @@ class MetaGraphAPIClient(SocialMediaPort):
             params = {}
         params["access_token"] = self.access_token
 
-        response = await self.client.get(url, params=params)
-        response.raise_for_status()
-        return response.json()
+        start_time = time.time()
+        try:
+            response = await self.client.get(url, params=params)
+            process_time_ms = (time.time() - start_time) * 1000
+            api_logger.log_call(
+                call_type="outgoing",
+                method="GET",
+                url=url,
+                status_code=response.status_code,
+                response_time_ms=process_time_ms
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPError as exc:
+            process_time_ms = (time.time() - start_time) * 1000
+            status_code = exc.response.status_code if hasattr(exc, "response") and exc.response else 500
+            api_logger.log_call(
+                call_type="outgoing",
+                method="GET",
+                url=url,
+                status_code=status_code,
+                response_time_ms=process_time_ms,
+                error=str(exc)
+            )
+            raise
 
     async def _post(self, endpoint: str, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         url = f"{self.base_url}/{endpoint}"
         params = {"access_token": self.access_token}
         
-        response = await self.client.post(url, params=params, json=data)
-        response.raise_for_status()
-        return response.json()
+        start_time = time.time()
+        try:
+            response = await self.client.post(url, params=params, json=data)
+            process_time_ms = (time.time() - start_time) * 1000
+            api_logger.log_call(
+                call_type="outgoing",
+                method="POST",
+                url=url,
+                status_code=response.status_code,
+                response_time_ms=process_time_ms
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPError as exc:
+            process_time_ms = (time.time() - start_time) * 1000
+            status_code = exc.response.status_code if hasattr(exc, "response") and exc.response else 500
+            api_logger.log_call(
+                call_type="outgoing",
+                method="POST",
+                url=url,
+                status_code=status_code,
+                response_time_ms=process_time_ms,
+                error=str(exc)
+            )
+            raise
 
     async def get_posts(self, limit: int = 10) -> Dict[str, Any]:
         """Fetch posts from the configured account."""
