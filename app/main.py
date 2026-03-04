@@ -16,9 +16,11 @@ from app.domain.models import (
 from app.adapters.meta_api import MetaGraphAPIClient
 from app.services.social_media_service import SocialMediaService
 from app.config import settings
-from fastapi.responses import PlainTextResponse, JSONResponse
+from fastapi.responses import PlainTextResponse, JSONResponse, HTMLResponse
 from fastapi import Request
 from starlette.exceptions import HTTPException as StarletteHTTPException
+import time
+from app.services.logger_service import api_logger
 
 meta_client = MetaGraphAPIClient()
 social_media_service = SocialMediaService(meta_client)
@@ -36,6 +38,32 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start_time = time.time()
+    try:
+        response = await call_next(request)
+        process_time_ms = (time.time() - start_time) * 1000
+        api_logger.log_call(
+            call_type="incoming",
+            method=request.method,
+            url=str(request.url.path),
+            status_code=response.status_code,
+            response_time_ms=process_time_ms
+        )
+        return response
+    except Exception as exc:
+        process_time_ms = (time.time() - start_time) * 1000
+        api_logger.log_call(
+            call_type="incoming",
+            method=request.method,
+            url=str(request.url.path),
+            status_code=500,
+            response_time_ms=process_time_ms,
+            error=str(exc)
+        )
+        raise exc
 
 @app.exception_handler(httpx.HTTPStatusError)
 async def http_status_error_handler(request: Request, exc: httpx.HTTPStatusError):
@@ -60,6 +88,105 @@ async def generic_exception_handler(request: Request, exc: Exception):
 @app.get("/health", summary="Health check endpoint")
 async def health_check():
     return {"status": "ok"}
+
+@app.get("/logs", summary="Get API call logs")
+async def get_logs():
+    return {"logs": api_logger.get_logs()}
+
+@app.get("/logs/ui", response_class=HTMLResponse, summary="UI to view API call logs")
+async def logs_ui():
+    html_content = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>API Call Logs</title>
+        <style>
+            body { font-family: sans-serif; margin: 20px; }
+            table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; }
+            .incoming { color: blue; }
+            .outgoing { color: green; }
+            .error { color: red; }
+            h1 { font-size: 24px; }
+            button { padding: 10px; margin-bottom: 20px; cursor: pointer; }
+        </style>
+    </head>
+    <body>
+        <h1>API Call Logs</h1>
+        <button onclick="fetchLogs()">Refresh Logs</button>
+        <table>
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Type</th>
+                    <th>Method</th>
+                    <th>URL</th>
+                    <th>Status</th>
+                    <th>Time (ms)</th>
+                    <th>Error</th>
+                </tr>
+            </thead>
+            <tbody id="logs-body">
+                <tr><td colspan="7">Loading logs...</td></tr>
+            </tbody>
+        </table>
+        <script>
+            async function fetchLogs() {
+                try {
+                    const response = await fetch('/logs');
+                    const data = await response.json();
+                    const logs = data.logs;
+                    const tbody = document.getElementById('logs-body');
+                    tbody.innerHTML = '';
+
+                    if (logs.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="7">No logs available.</td></tr>';
+                        return;
+                    }
+
+                    // Function to escape HTML to prevent XSS
+                    function escapeHtml(unsafe) {
+                        if (!unsafe) return '';
+                        return unsafe
+                             .toString()
+                             .replace(/&/g, "&amp;")
+                             .replace(/</g, "&lt;")
+                             .replace(/>/g, "&gt;")
+                             .replace(/"/g, "&quot;")
+                             .replace(/'/g, "&#039;");
+                    }
+
+                    // Reverse logs to show newest first
+                    logs.reverse().forEach(log => {
+                        const tr = document.createElement('tr');
+                        const date = new Date(log.timestamp * 1000).toISOString();
+                        const typeClass = log.type === 'incoming' ? 'incoming' : 'outgoing';
+                        const statusClass = (log.status_code >= 400 || log.error) ? 'error' : '';
+
+                        tr.innerHTML = `
+                            <td>${escapeHtml(date)}</td>
+                            <td class="${typeClass}"><b>${escapeHtml(log.type.toUpperCase())}</b></td>
+                            <td>${escapeHtml(log.method)}</td>
+                            <td>${escapeHtml(log.url)}</td>
+                            <td class="${statusClass}">${escapeHtml(log.status_code)}</td>
+                            <td>${escapeHtml(log.response_time_ms.toFixed(2))}</td>
+                            <td class="${statusClass}">${escapeHtml(log.error)}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                } catch (error) {
+                    console.error('Error fetching logs:', error);
+                    document.getElementById('logs-body').innerHTML = '<tr><td colspan="7" class="error">Error loading logs.</td></tr>';
+                }
+            }
+            // Initial fetch
+            fetchLogs();
+        </script>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
 
 @app.get("/posts", response_model=PostListResponse, summary="Get account posts")
 async def get_posts(limit: int = Query(10, description="Number of posts to retrieve")):
