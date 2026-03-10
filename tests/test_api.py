@@ -29,9 +29,6 @@ def test_webhook_get_failure():
     response = client.get("/webhook?hub.mode=subscribe&hub.challenge=1158201444&hub.verify_token=wrong_token")
     assert response.status_code == 403
 
-import hmac
-import hashlib
-import json
 
 def test_webhook_post():
     payload = {
@@ -93,8 +90,6 @@ def test_get_likes(mock_get_likes):
     assert response.status_code == 200
     assert response.json() == {"data": [{"id": "123", "name": "Test User"}], "paging": None}
 
-
-import httpx
 
 @patch("app.adapters.meta_api.MetaGraphAPIClient.get_comments", new_callable=AsyncMock)
 def test_get_comments(mock_get_comments):
