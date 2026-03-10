@@ -4,8 +4,8 @@ class Settings(BaseSettings):
     meta_access_token: str
     meta_account_id: str
     meta_api_version: str = "v19.0"
-    meta_webhook_verify_token: str = "your_webhook_verify_token_here"
-    meta_app_secret: str = "your_meta_app_secret_here"
+    meta_webhook_verify_token: str
+    meta_app_secret: str
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
