@@ -17,7 +17,6 @@ from app.adapters.meta_api import MetaGraphAPIClient
 from app.services.social_media_service import SocialMediaService
 from app.config import settings
 from fastapi.responses import PlainTextResponse, JSONResponse, HTMLResponse
-from fastapi import Request
 from starlette.exceptions import HTTPException as StarletteHTTPException
 import time
 from app.services.logger_service import api_logger
