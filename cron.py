@@ -12,7 +12,8 @@ async def fetch_and_process():
         posts_response = await service.get_posts(limit=5)
         posts = posts_response.get("data", [])
 
-        for post in posts:
+        # Fetch likes and comments for all posts concurrently
+        async def process_post(post):
             post_id = post.get("id")
             print(f"Processing post: {post_id}")
 
@@ -36,6 +37,8 @@ async def fetch_and_process():
                 print(f"    Comment {comment_id} has {len(comment_likes)} likes.")
 
             await asyncio.gather(*(process_comment_inner(comment) for comment in comments))
+
+        await asyncio.gather(*(process_post(post) for post in posts))
 
         await client.aclose()
     except Exception as e:
