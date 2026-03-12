@@ -32,11 +32,17 @@ The repository follows a Ports and Adapters (hexagonal) architecture style, stru
 
 ### Configuration
 Update the `.env` file with your specific Meta app configuration:
-- `META_ACCESS_TOKEN`: The user or page access token.
-- `META_ACCOUNT_ID`: The ID of the specific account you want to query.
+- `META_ACCESS_TOKEN`: The user or page access token. To get this:
+  1. Go to the [Meta for Developers App Dashboard](https://developers.facebook.com/apps/).
+  2. Select your app and navigate to **API Setup** or **Graph API Explorer**.
+  3. Generate a User or Page Access Token with the required permissions (e.g., `pages_read_engagement`, `pages_manage_metadata`, `pages_read_user_content`, `instagram_basic`, `instagram_manage_comments`).
+- `META_ACCOUNT_ID`: The ID of the specific account you want to query (e.g., your Instagram Business Account ID or Facebook Page ID). You can find this using the Graph API Explorer by querying `/me/accounts` (for Pages) or `/me?fields=instagram_business_account` (for connected Instagram accounts).
 - `META_API_VERSION`: Graph API version (default is `v19.0`).
-- `META_WEBHOOK_VERIFY_TOKEN`: A custom token used to verify the webhook setup (only needed if using webhooks).
-- `META_APP_SECRET`: Your Meta App Secret, used to verify the payload signature of incoming webhooks.
+- `META_WEBHOOK_VERIFY_TOKEN`: A custom string token you create. You enter this token when configuring your webhook in the Meta App Dashboard, and the application uses it to verify that incoming webhook setup requests are genuinely from Meta.
+- `META_APP_SECRET`: Your Meta App Secret, used to verify the payload signature of incoming webhooks. To get this:
+  1. Go to your app in the [Meta for Developers App Dashboard](https://developers.facebook.com/apps/).
+  2. In the left sidebar, navigate to **App Settings** -> **Basic**.
+  3. Click **Show** next to the **App Secret** field.
 
 ## Running the Application
 
