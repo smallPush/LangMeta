@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import patch, AsyncMock
 import builtins
-from cron import fetch_and_process
+from cron import fetch_and_process, process_comment
 
 @pytest.mark.asyncio
 @patch("app.services.social_media_service.SocialMediaService.get_posts", new_callable=AsyncMock)
@@ -66,3 +66,33 @@ async def test_fetch_and_process_exception(mock_print, mock_get_posts):
     # Assert output caught exception
     mock_print.assert_any_call("Running cron job to fetch posts, comments, and likes...")
     mock_print.assert_any_call("An error occurred during cron execution: Test exception")
+
+@pytest.mark.asyncio
+@patch("builtins.print")
+async def test_process_comment_success(mock_print):
+    mock_service = AsyncMock()
+    mock_service.get_likes.return_value = {
+        "data": [{"id": "like_1"}, {"id": "like_2"}]
+    }
+
+    comment = {"id": "comment_123"}
+    await process_comment(mock_service, comment)
+
+    mock_service.get_likes.assert_called_once_with("comment_123", limit=5)
+    mock_print.assert_any_call("  Processing comment: comment_123")
+    mock_print.assert_any_call("    Comment comment_123 has 2 likes.")
+
+@pytest.mark.asyncio
+@patch("builtins.print")
+async def test_process_comment_no_likes(mock_print):
+    mock_service = AsyncMock()
+    mock_service.get_likes.return_value = {
+        "data": []
+    }
+
+    comment = {"id": "comment_456"}
+    await process_comment(mock_service, comment)
+
+    mock_service.get_likes.assert_called_once_with("comment_456", limit=5)
+    mock_print.assert_any_call("  Processing comment: comment_456")
+    mock_print.assert_any_call("    Comment comment_456 has 0 likes.")
