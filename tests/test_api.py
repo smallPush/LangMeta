@@ -8,6 +8,8 @@ os.environ["META_ACCOUNT_ID"] = "test_account_id"
 os.environ["META_WEBHOOK_VERIFY_TOKEN"] = "your_webhook_verify_token_here"
 os.environ["META_APP_SECRET"] = "your_meta_app_secret_here"
 
+import pytest
+from fastapi import Request
 from fastapi.testclient import TestClient
 from app.main import app
 from app.config import settings
@@ -121,3 +123,26 @@ def test_get_comments_internal_error(mock_get_comments):
     response = client.get("/posts/test_post_id/comments")
     assert response.status_code == 500
     assert response.json() == {"detail": "Internal error"}
+
+
+@pytest.mark.asyncio
+@patch("app.main.api_logger.log_call")
+async def test_log_requests_middleware_exception(mock_log_call):
+    from app.main import log_requests
+    mock_request = MagicMock(spec=Request)
+    mock_request.method = "GET"
+    mock_request.url.path = "/test-middleware-error"
+
+    async def mock_call_next(request):
+        raise RuntimeError("Simulated middleware error")
+
+    with pytest.raises(RuntimeError, match="Simulated middleware error"):
+        await log_requests(mock_request, mock_call_next)
+
+    mock_log_call.assert_called_once()
+    _, kwargs = mock_log_call.call_args
+    assert kwargs.get("call_type") == "incoming"
+    assert kwargs.get("method") == "GET"
+    assert kwargs.get("url") == "/test-middleware-error"
+    assert kwargs.get("status_code") == 500
+    assert kwargs.get("error") == "Simulated middleware error"
