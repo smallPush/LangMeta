@@ -146,3 +146,50 @@ async def test_log_requests_middleware_exception(mock_log_call):
     assert kwargs.get("url") == "/test-middleware-error"
     assert kwargs.get("status_code") == 500
     assert kwargs.get("error") == "Simulated middleware error"
+
+@pytest.mark.asyncio
+async def test_generic_exception_handler_standard_exception():
+    from app.main import generic_exception_handler
+    from fastapi import Request
+    from unittest.mock import MagicMock
+    import json
+
+    mock_request = MagicMock(spec=Request)
+    exc = Exception("A standard exception occurred")
+
+    response = await generic_exception_handler(mock_request, exc)
+
+    assert response.status_code == 500
+    assert json.loads(response.body) == {"detail": "A standard exception occurred"}
+
+@pytest.mark.asyncio
+async def test_generic_exception_handler_starlette_http_exception():
+    from app.main import generic_exception_handler
+    from fastapi import Request
+    from starlette.exceptions import HTTPException as StarletteHTTPException
+    from unittest.mock import MagicMock
+    import json
+
+    mock_request = MagicMock(spec=Request)
+    exc = StarletteHTTPException(status_code=403, detail="Forbidden access")
+
+    response = await generic_exception_handler(mock_request, exc)
+
+    assert response.status_code == 403
+    assert json.loads(response.body) == {"detail": "Forbidden access"}
+
+
+def test_generic_exception_handler_integration_standard():
+    client_local = TestClient(app, raise_server_exceptions=False)
+    with patch("app.main.api_logger.get_logs", side_effect=Exception("Integration error")):
+        response = client_local.get("/logs")
+        assert response.status_code == 500
+        assert response.json() == {"detail": "Integration error"}
+
+def test_generic_exception_handler_integration_starlette():
+    client_local = TestClient(app, raise_server_exceptions=False)
+    from starlette.exceptions import HTTPException as StarletteHTTPException
+    with patch("app.main.api_logger.get_logs", side_effect=StarletteHTTPException(status_code=401, detail="Unauthorized integration")):
+        response = client_local.get("/logs")
+        assert response.status_code == 401
+        assert response.json() == {"detail": "Unauthorized integration"}
