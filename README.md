@@ -67,6 +67,43 @@ The application will be exposed on port `8000`.
 
 *Note: All Meta interaction endpoints (except `/health` and `/webhook`) may require authentication or assume that valid configuration is present in the application's context depending on your security setup (like API Key validation, if implemented).*
 
+## API Usage Examples
+
+Here are some `curl` examples for interacting with the main API endpoints:
+
+### Health Check
+```bash
+curl -X GET "http://127.0.0.1:8000/health"
+```
+
+### Get Account Posts
+Retrieve recent posts from the configured Meta account:
+```bash
+curl -X GET "http://127.0.0.1:8000/posts?limit=10"
+```
+
+### Get Likes for a Post or Comment
+```bash
+curl -X GET "http://127.0.0.1:8000/123456789/likes?limit=10"
+```
+
+### Get Comments for a Post
+```bash
+curl -X GET "http://127.0.0.1:8000/posts/123456789/comments?limit=10"
+```
+
+### Post a New Comment
+```bash
+curl -X POST "http://127.0.0.1:8000/posts/123456789/comments" \
+     -H "Content-Type: application/json" \
+     -d '{"message": "Great post!"}'
+```
+
+### Like a Comment
+```bash
+curl -X POST "http://127.0.0.1:8000/comments/987654321/like"
+```
+
 ## Testing
 
 Testing is performed using `pytest`. The application expects to use fake data or adapters when appropriate to isolate the logic.
