@@ -243,12 +243,6 @@ async def handle_webhook(
     # Log or process the incoming webhook notifications
     print("Received webhook payload:", payload.model_dump())
 
-    # Process Instagram actions like comments, etc.
-    if payload.object == "instagram":
-        for entry in payload.entry:
-            # Add specific logic here based on webhook changes
-            pass
-
     return {"status": "success"}
 
 @app.get("/posts/{post_id}/comments", response_model=CommentListResponse, summary="Get comments for a post")
