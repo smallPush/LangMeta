@@ -114,7 +114,7 @@ def test_get_comments_http_error(mock_get_comments):
 
     response = client.get("/posts/test_post_id/comments")
     assert response.status_code == 404
-    assert response.json() == {"detail": "Not Found"}
+    assert response.json() == {"detail": "Meta API request failed"}
 
 @patch("app.adapters.meta_api.MetaGraphAPIClient.get_comments", new_callable=AsyncMock)
 def test_get_comments_internal_error(mock_get_comments):
@@ -122,7 +122,7 @@ def test_get_comments_internal_error(mock_get_comments):
 
     response = client.get("/posts/test_post_id/comments")
     assert response.status_code == 500
-    assert response.json() == {"detail": "Internal error"}
+    assert response.json() == {"detail": "Internal server error"}
 
 
 @pytest.mark.asyncio
@@ -160,7 +160,7 @@ async def test_generic_exception_handler_standard_exception():
     response = await generic_exception_handler(mock_request, exc)
 
     assert response.status_code == 500
-    assert json.loads(response.body) == {"detail": "A standard exception occurred"}
+    assert json.loads(response.body) == {"detail": "Internal server error"}
 
 @pytest.mark.asyncio
 async def test_generic_exception_handler_starlette_http_exception():
@@ -184,7 +184,7 @@ def test_generic_exception_handler_integration_standard():
     with patch("app.main.api_logger.get_logs", side_effect=Exception("Integration error")):
         response = client_local.get("/logs")
         assert response.status_code == 500
-        assert response.json() == {"detail": "Integration error"}
+        assert response.json() == {"detail": "Internal server error"}
 
 def test_generic_exception_handler_integration_starlette():
     client_local = TestClient(app, raise_server_exceptions=False)

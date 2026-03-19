@@ -68,7 +68,7 @@ async def log_requests(request: Request, call_next):
 async def http_status_error_handler(request: Request, exc: httpx.HTTPStatusError):
     return JSONResponse(
         status_code=exc.response.status_code,
-        content={"detail": str(exc)},
+        content={"detail": "Meta API request failed"},
     )
 
 @app.exception_handler(Exception)
@@ -81,7 +81,7 @@ async def generic_exception_handler(request: Request, exc: Exception):
         )
     return JSONResponse(
         status_code=500,
-        content={"detail": str(exc)},
+        content={"detail": "Internal server error"},
     )
 
 @app.get("/health", summary="Health check endpoint")
