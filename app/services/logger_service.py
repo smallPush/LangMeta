@@ -1,11 +1,10 @@
 import time
 from typing import List, Dict, Any
 from threading import Lock
-from collections import deque
-
 class APILogger:
     def __init__(self, maxlen: int = 1000):
-        self.logs: deque[Dict[str, Any]] = deque(maxlen=maxlen)
+        self.logs: List[Dict[str, Any]] = []
+        self.maxlen = maxlen
         self._lock = Lock()
 
     def log_call(self, call_type: str, method: str, url: str, status_code: int, response_time_ms: float, error: str = None):
@@ -26,10 +25,12 @@ class APILogger:
 
         with self._lock:
             self.logs.append(log_entry)
+            if len(self.logs) > self.maxlen:
+                self.logs.pop(0)
 
     def get_logs(self) -> List[Dict[str, Any]]:
         with self._lock:
-            return list(self.logs)
+            return self.logs[:]
 
     def clear_logs(self):
         with self._lock:
