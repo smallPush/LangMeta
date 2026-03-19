@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     meta_api_version: str = "v19.0"
     meta_webhook_verify_token: str
     meta_app_secret: str
+    api_key: str
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

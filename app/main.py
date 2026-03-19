@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException, Path, Query, Request, Header
+from fastapi import FastAPI, HTTPException, Path, Query, Request, Header, Depends, Security
+from fastapi.security import APIKeyHeader, APIKeyQuery
 import httpx
 import hmac
 import hashlib
@@ -23,6 +24,22 @@ from app.services.logger_service import api_logger
 
 meta_client = MetaGraphAPIClient()
 social_media_service = SocialMediaService(meta_client)
+
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+api_key_query = APIKeyQuery(name="api_key", auto_error=False)
+
+async def get_api_key(
+    api_key_header: str = Security(api_key_header),
+    api_key_query: str = Security(api_key_query),
+):
+    if api_key_header == settings.api_key:
+        return api_key_header
+    if api_key_query == settings.api_key:
+        return api_key_query
+    raise HTTPException(
+        status_code=403,
+        detail="Could not validate API Key",
+    )
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -88,11 +105,11 @@ async def generic_exception_handler(request: Request, exc: Exception):
 async def health_check():
     return {"status": "ok"}
 
-@app.get("/logs", summary="Get API call logs")
+@app.get("/logs", summary="Get API call logs", dependencies=[Depends(get_api_key)])
 async def get_logs():
     return {"logs": api_logger.get_logs()}
 
-@app.get("/logs/ui", response_class=HTMLResponse, summary="UI to view API call logs")
+@app.get("/logs/ui", response_class=HTMLResponse, summary="UI to view API call logs", dependencies=[Depends(get_api_key)])
 async def logs_ui():
     html_content = """
     <!DOCTYPE html>
@@ -133,7 +150,14 @@ async def logs_ui():
         <script>
             async function fetchLogs() {
                 try {
-                    const response = await fetch('/logs');
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const apiKey = urlParams.get('api_key');
+                    const headers = {};
+                    if (apiKey) {
+                        headers['X-API-Key'] = apiKey;
+                    }
+
+                    const response = await fetch('/logs', { headers });
                     const data = await response.json();
                     const logs = data.logs;
                     const tbody = document.getElementById('logs-body');
