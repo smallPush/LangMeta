@@ -3,6 +3,8 @@ import os
 os.environ["META_ACCESS_TOKEN"] = "test_access_token"
 os.environ["META_ACCOUNT_ID"] = "test_account_id"
 os.environ["META_WEBHOOK_VERIFY_TOKEN"] = "your_webhook_verify_token_here"
+os.environ["META_APP_SECRET"] = "your_meta_app_secret_here"
+os.environ["API_KEY"] = "test_api_key"
 
 from fastapi.testclient import TestClient
 from app.main import app
@@ -31,7 +33,7 @@ def test_logger_get_logs_endpoint():
     # Make a request to generate a log
     client.get("/health")
 
-    response = client.get("/logs")
+    response = client.get("/logs", headers={"X-API-Key": "test_api_key"})
     assert response.status_code == 200
 
     data = response.json()
@@ -43,7 +45,7 @@ def test_logger_get_logs_endpoint():
     assert data["logs"][0]["url"] == "/health"
 
 def test_logger_ui_endpoint():
-    response = client.get("/logs/ui")
+    response = client.get("/logs/ui?api_key=test_api_key")
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
     assert "API Call Logs" in response.text
