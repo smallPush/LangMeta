@@ -194,3 +194,18 @@ def test_generic_exception_handler_integration_starlette():
         response = client_local.get("/logs")
         assert response.status_code == 401
         assert response.json() == {"detail": "Unauthorized integration"}
+
+@patch("app.main.social_media_service.like_object", new_callable=AsyncMock)
+def test_like_comment_success(mock_like_object):
+    mock_like_object.return_value = {"success": True}
+    response = client.post("/comments/test_comment_id/like")
+    assert response.status_code == 200
+    assert response.json() == {"success": True}
+
+@patch("app.main.social_media_service.like_object", new_callable=AsyncMock)
+def test_like_comment_internal_error(mock_like_object):
+    mock_like_object.side_effect = Exception("Internal error")
+
+    response = client.post("/comments/test_comment_id/like")
+    assert response.status_code == 500
+    assert response.json() == {"detail": "Internal server error"}
