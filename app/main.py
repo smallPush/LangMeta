@@ -22,7 +22,8 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 import time
 from app.services.logger_service import api_logger
 
-meta_client = MetaGraphAPIClient()
+http_client = httpx.AsyncClient()
+meta_client = MetaGraphAPIClient(client=http_client)
 social_media_service = SocialMediaService(meta_client)
 
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
@@ -47,6 +48,7 @@ async def lifespan(app: FastAPI):
     yield
     # Shutdown: Close the meta_client
     await social_media_service.aclose()
+    await http_client.aclose()
 
 app = FastAPI(
     title="Meta Graph API Integration",

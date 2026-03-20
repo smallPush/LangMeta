@@ -1,4 +1,5 @@
 import asyncio
+import httpx
 from app.adapters.meta_api import MetaGraphAPIClient
 from app.services.social_media_service import SocialMediaService
 
@@ -12,7 +13,8 @@ async def process_comment(service, comment):
 async def fetch_and_process():
     print("Running cron job to fetch posts, comments, and likes...")
     try:
-        client = MetaGraphAPIClient()
+        http_client = httpx.AsyncClient()
+        client = MetaGraphAPIClient(client=http_client)
         service = SocialMediaService(client)
         
         # Fetch posts
@@ -41,6 +43,7 @@ async def fetch_and_process():
         await asyncio.gather(*(process_post(post) for post in posts))
 
         await client.aclose()
+        await http_client.aclose()
     except Exception as e:
         print(f"An error occurred during cron execution: {e}")
 
