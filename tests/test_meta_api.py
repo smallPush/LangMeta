@@ -96,6 +96,58 @@ async def test_get_posts(meta_client):
         assert result == {"data": []}
 
 @pytest.mark.asyncio
+async def test_api_logger_sanitization_on_error(meta_client):
+    from app.services.logger_service import api_logger
+    import urllib.parse
+    api_logger.clear_logs()
+
+    endpoint = "test_error_sanitization"
+    expected_url = f"{meta_client.base_url}/{endpoint}"
+    mock_request = httpx.Request("GET", expected_url)
+
+    # Simulate an error response with the token in the error message
+    error_msg = f"Error with token {meta_client.access_token} and encoded {urllib.parse.quote(meta_client.access_token)}"
+    mock_response = httpx.Response(500, request=mock_request)
+    http_error = httpx.HTTPStatusError(error_msg, request=mock_request, response=mock_response)
+
+    with patch.object(meta_client.client, "get", new_callable=AsyncMock) as mock_get:
+        mock_get.side_effect = http_error
+
+        with pytest.raises(httpx.HTTPStatusError):
+            await meta_client._get(endpoint)
+
+    logs = api_logger.get_logs()
+    assert len(logs) == 1
+    log = logs[0]
+
+    assert log["error"] is not None
+    assert meta_client.access_token not in log["error"]
+    assert "***" in log["error"]
+
+    assert meta_client.access_token not in log["url"]
+
+@pytest.mark.asyncio
+async def test_api_logger_sanitization_on_success(meta_client):
+    from app.services.logger_service import api_logger
+    api_logger.clear_logs()
+
+    endpoint = "test_success_sanitization"
+    mock_response = AsyncMock()
+    mock_response.json = lambda: {"data": "test"}
+    mock_response.status_code = 200
+    mock_response.raise_for_status = lambda: None
+
+    with patch.object(meta_client.client, "post", new_callable=AsyncMock) as mock_post:
+        mock_post.return_value = mock_response
+        await meta_client._post(endpoint, data={})
+
+    logs = api_logger.get_logs()
+    assert len(logs) == 1
+    log = logs[0]
+
+    assert meta_client.access_token not in log["url"]
+
+@pytest.mark.asyncio
 async def test_get_comments(meta_client):
     post_id = "test_post_id"
     limit = 5

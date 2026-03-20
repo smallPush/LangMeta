@@ -7,7 +7,7 @@ os.environ["META_ACCESS_TOKEN"] = "test"
 os.environ["META_ACCOUNT_ID"] = "test"
 os.environ["META_WEBHOOK_VERIFY_TOKEN"] = "test"
 os.environ["META_APP_SECRET"] = "test"
-os.environ["API_KEY"] = "secure_key"
+os.environ["API_KEY"] = "test_api_key"
 
 from app.main import app
 
@@ -25,12 +25,14 @@ def test_logs_ui_inaccessible_without_auth():
 
 def test_logs_accessible_with_header():
     """Verify that /logs is accessible with the correct X-API-Key header."""
-    response = client.get("/logs", headers={"X-API-Key": "secure_key"})
+    from app.services.logger_service import api_logger
+    api_logger.clear_logs()
+    response = client.get("/logs", headers={"X-API-Key": "test_api_key"})
     assert response.status_code == 200
 
 def test_logs_ui_accessible_with_query_param():
     """Verify that /logs/ui is accessible with the correct api_key query parameter."""
-    response = client.get("/logs/ui?api_key=secure_key")
+    response = client.get("/logs/ui?api_key=test_api_key")
     assert response.status_code == 200
 
 def test_logs_inaccessible_with_wrong_key():
