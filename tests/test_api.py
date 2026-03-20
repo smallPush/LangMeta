@@ -87,6 +87,43 @@ def test_webhook_post_invalid_signature():
     assert response.status_code == 401
     assert response.json() == {"detail": "Invalid signature"}
 
+@patch("app.adapters.meta_api.MetaGraphAPIClient.get_posts", new_callable=AsyncMock)
+def test_get_posts(mock_get_posts):
+    mock_get_posts.return_value = {
+        "data": [
+            {
+                "id": "123456789_987654321",
+                "message": "This is a mock post message.",
+                "created_time": "2024-03-03T10:00:00+0000"
+            }
+        ],
+        "paging": {
+            "cursors": {
+                "before": "QVFIU...",
+                "after": "QVFIU..."
+            },
+            "next": "https://graph.facebook.com/v19.0/123456789/posts?limit=2&after=QVFIU..."
+        }
+    }
+    response = client.get("/posts")
+    assert response.status_code == 200
+    assert response.json() == {
+        "data": [
+            {
+                "id": "123456789_987654321",
+                "message": "This is a mock post message.",
+                "created_time": "2024-03-03T10:00:00+0000"
+            }
+        ],
+        "paging": {
+            "cursors": {
+                "before": "QVFIU...",
+                "after": "QVFIU..."
+            },
+            "next": "https://graph.facebook.com/v19.0/123456789/posts?limit=2&after=QVFIU..."
+        }
+    }
+
 @patch("app.adapters.meta_api.MetaGraphAPIClient.get_likes", new_callable=AsyncMock)
 def test_get_likes(mock_get_likes):
     mock_get_likes.return_value = {"data": [{"id": "123", "name": "Test User"}]}
