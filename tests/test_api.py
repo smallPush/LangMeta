@@ -14,6 +14,7 @@ from fastapi import Request
 from fastapi.testclient import TestClient
 from app.main import app
 from app.config import settings
+settings.api_key = "test_api_key"
 import httpx
 from unittest.mock import patch, AsyncMock, MagicMock
 
@@ -118,6 +119,17 @@ def test_get_comments_http_error(mock_get_comments):
     assert response.json() == {"detail": "Meta API request failed"}
 
 @patch("app.adapters.meta_api.MetaGraphAPIClient.get_comments", new_callable=AsyncMock)
+def test_get_comments_http_error_with_json(mock_get_comments):
+    mock_request = httpx.Request("GET", "https://graph.facebook.com/v18.0/test_post_id/comments")
+    json_error_payload = {"error": {"message": "Invalid OAuth access token.", "type": "OAuthException", "code": 190, "fbtrace_id": "ABC"}}
+    mock_response = httpx.Response(401, request=mock_request, json=json_error_payload)
+    mock_get_comments.side_effect = httpx.HTTPStatusError("Unauthorized", request=mock_request, response=mock_response)
+
+    response = client.get("/posts/test_post_id/comments")
+    assert response.status_code == 401
+    assert response.json() == {"detail": json_error_payload}
+
+@patch("app.adapters.meta_api.MetaGraphAPIClient.get_comments", new_callable=AsyncMock)
 def test_get_comments_internal_error(mock_get_comments):
     mock_get_comments.side_effect = Exception("Internal error")
 
@@ -147,6 +159,57 @@ async def test_log_requests_middleware_exception(mock_log_call):
     assert kwargs.get("url") == "/test-middleware-error"
     assert kwargs.get("status_code") == 500
     assert kwargs.get("error") == "Simulated middleware error"
+
+@pytest.mark.asyncio
+async def test_http_status_error_handler_with_json():
+    from app.main import http_status_error_handler
+    from fastapi import Request
+    from unittest.mock import MagicMock
+    import json
+
+    mock_request = MagicMock(spec=Request)
+    mock_request_httpx = httpx.Request("GET", "https://graph.facebook.com/v18.0/test")
+    mock_response = httpx.Response(400, request=mock_request_httpx, json={"error": {"message": "Invalid parameter"}})
+    exc = httpx.HTTPStatusError("Bad Request", request=mock_request_httpx, response=mock_response)
+
+    response = await http_status_error_handler(mock_request, exc)
+
+    assert response.status_code == 400
+    assert json.loads(response.body) == {"detail": {"error": {"message": "Invalid parameter"}}}
+
+@pytest.mark.asyncio
+async def test_http_status_error_handler_without_json():
+    from app.main import http_status_error_handler
+    from fastapi import Request
+    from unittest.mock import MagicMock
+    import json
+
+    mock_request = MagicMock(spec=Request)
+    mock_request_httpx = httpx.Request("GET", "https://graph.facebook.com/v18.0/test")
+    mock_response = httpx.Response(500, request=mock_request_httpx, content=b"Internal Server Error Text")
+    exc = httpx.HTTPStatusError("Internal Server Error", request=mock_request_httpx, response=mock_response)
+
+    response = await http_status_error_handler(mock_request, exc)
+
+    assert response.status_code == 500
+    assert json.loads(response.body) == {"detail": "Meta API request failed"}
+
+@pytest.mark.asyncio
+async def test_http_status_error_handler_missing_response():
+    from app.main import http_status_error_handler
+    from fastapi import Request
+    from unittest.mock import MagicMock
+    import json
+
+    mock_request = MagicMock(spec=Request)
+    mock_request_httpx = httpx.Request("GET", "https://graph.facebook.com/v18.0/test")
+    exc = httpx.HTTPStatusError("Error", request=mock_request_httpx, response=None) # type: ignore
+
+    response = await http_status_error_handler(mock_request, exc)
+
+    assert response.status_code == 500
+    assert json.loads(response.body) == {"detail": "Meta API request failed"}
+
 
 @pytest.mark.asyncio
 async def test_generic_exception_handler_standard_exception():
@@ -183,7 +246,7 @@ async def test_generic_exception_handler_starlette_http_exception():
 def test_generic_exception_handler_integration_standard():
     client_local = TestClient(app, raise_server_exceptions=False)
     with patch("app.main.api_logger.get_logs", side_effect=Exception("Integration error")):
-        response = client_local.get("/logs")
+        response = client_local.get(f"/logs?api_key={settings.api_key}")
         assert response.status_code == 500
         assert response.json() == {"detail": "Internal server error"}
 
@@ -191,6 +254,6 @@ def test_generic_exception_handler_integration_starlette():
     client_local = TestClient(app, raise_server_exceptions=False)
     from starlette.exceptions import HTTPException as StarletteHTTPException
     with patch("app.main.api_logger.get_logs", side_effect=StarletteHTTPException(status_code=401, detail="Unauthorized integration")):
-        response = client_local.get("/logs")
+        response = client_local.get(f"/logs?api_key={settings.api_key}")
         assert response.status_code == 401
         assert response.json() == {"detail": "Unauthorized integration"}

@@ -83,10 +83,12 @@ async def log_requests(request: Request, call_next):
 
 @app.exception_handler(httpx.HTTPStatusError)
 async def http_status_error_handler(request: Request, exc: httpx.HTTPStatusError):
-    return JSONResponse(
-        status_code=exc.response.status_code,
-        content={"detail": "Meta API request failed"},
-    )
+    status_code = exc.response.status_code if hasattr(exc, "response") and exc.response is not None else 500
+    try:
+        detail = exc.response.json()
+    except Exception:
+        detail = "Meta API request failed"
+    return JSONResponse(status_code=status_code, content={"detail": detail})
 
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
