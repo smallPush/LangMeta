@@ -23,14 +23,17 @@ def test_logs_ui_inaccessible_without_auth():
     response = client.get("/logs/ui")
     assert response.status_code == 403
 
+from app.services.logger_service import api_logger
 def test_logs_accessible_with_header():
+    api_logger.clear_logs()
     """Verify that /logs is accessible with the correct X-API-Key header."""
-    response = client.get("/logs", headers={"X-API-Key": "secure_key"})
+    response = client.get("/logs", headers={"X-API-Key": "test_api_key"})
     assert response.status_code == 200
 
 def test_logs_ui_accessible_with_query_param():
+    api_logger.clear_logs()
     """Verify that /logs/ui is accessible with the correct api_key query parameter."""
-    response = client.get("/logs/ui?api_key=secure_key")
+    response = client.get("/logs/ui?api_key=test_api_key")
     assert response.status_code == 200
 
 def test_logs_inaccessible_with_wrong_key():

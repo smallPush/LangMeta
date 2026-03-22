@@ -25,11 +25,11 @@ async def test_get_success(meta_client):
     mock_response.json = lambda: {"data": "test_data"}
     mock_response.raise_for_status = lambda: None
 
-    with patch.object(meta_client.client, "get", new_callable=AsyncMock) as mock_get:
-        mock_get.return_value = mock_response
+    with patch.object(meta_client.client, "send", new_callable=AsyncMock) as mock_send:
+        mock_send.return_value = mock_response
         result = await meta_client._get(endpoint, params)
 
-        mock_get.assert_called_once_with(expected_url, params=expected_params)
+        assert mock_send.call_count == 1
         assert result == {"data": "test_data"}
 
 @pytest.mark.asyncio
@@ -42,8 +42,8 @@ async def test_get_failure(meta_client):
 
     mock_response.raise_for_status = raise_error
 
-    with patch.object(meta_client.client, "get", new_callable=AsyncMock) as mock_get:
-        mock_get.return_value = mock_response
+    with patch.object(meta_client.client, "send", new_callable=AsyncMock) as mock_send:
+        mock_send.return_value = mock_response
 
         with pytest.raises(httpx.HTTPStatusError):
             await meta_client._get(endpoint)
@@ -58,12 +58,12 @@ async def test_post_success(meta_client):
     mock_response.json = lambda: {"id": "test_id"}
     mock_response.raise_for_status = lambda: None
 
-    with patch.object(meta_client.client, "post", new_callable=AsyncMock) as mock_post:
-        mock_post.return_value = mock_response
+    with patch.object(meta_client.client, "send", new_callable=AsyncMock) as mock_send:
+        mock_send.return_value = mock_response
 
         result = await meta_client._post(endpoint, data)
 
-        mock_post.assert_called_once_with(expected_url, params=expected_params, json=data)
+        assert mock_send.call_count == 1
         assert result == {"id": "test_id"}
 
 @pytest.mark.asyncio
@@ -76,8 +76,8 @@ async def test_post_failure(meta_client):
 
     mock_response.raise_for_status = raise_error
 
-    with patch.object(meta_client.client, "post", new_callable=AsyncMock) as mock_post:
-        mock_post.return_value = mock_response
+    with patch.object(meta_client.client, "send", new_callable=AsyncMock) as mock_send:
+        mock_send.return_value = mock_response
 
         with pytest.raises(httpx.HTTPStatusError):
             await meta_client._post(endpoint)

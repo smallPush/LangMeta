@@ -183,7 +183,7 @@ async def test_generic_exception_handler_starlette_http_exception():
 def test_generic_exception_handler_integration_standard():
     client_local = TestClient(app, raise_server_exceptions=False)
     with patch("app.main.api_logger.get_logs", side_effect=Exception("Integration error")):
-        response = client_local.get("/logs")
+        response = client_local.get("/logs", headers={"X-API-Key": "test_api_key"})
         assert response.status_code == 500
         assert response.json() == {"detail": "Internal server error"}
 
@@ -191,6 +191,6 @@ def test_generic_exception_handler_integration_starlette():
     client_local = TestClient(app, raise_server_exceptions=False)
     from starlette.exceptions import HTTPException as StarletteHTTPException
     with patch("app.main.api_logger.get_logs", side_effect=StarletteHTTPException(status_code=401, detail="Unauthorized integration")):
-        response = client_local.get("/logs")
+        response = client_local.get("/logs", headers={"X-API-Key": "test_api_key"})
         assert response.status_code == 401
         assert response.json() == {"detail": "Unauthorized integration"}
