@@ -5,7 +5,7 @@ from app.services.social_media_service import SocialMediaService
 async def process_comment(service, comment):
     comment_id = comment.get("id")
     print(f"  Processing comment: {comment_id}")
-    comment_likes_response = await service.get_likes(comment_id, limit=5)
+    comment_likes_response = comment.get("likes", {})
     comment_likes = comment_likes_response.get("data", [])
     print(f"    Comment {comment_id} has {len(comment_likes)} likes.")
 
