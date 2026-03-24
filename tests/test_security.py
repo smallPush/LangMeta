@@ -23,20 +23,27 @@ def test_logs_ui_inaccessible_without_auth():
     response = client.get("/logs/ui")
     assert response.status_code == 403
 
-from app.services.logger_service import api_logger
-def test_logs_accessible_with_header():
-    api_logger.clear_logs()
+def test_logs_accessible_with_header(monkeypatch):
     """Verify that /logs is accessible with the correct X-API-Key header."""
-    response = client.get("/logs", headers={"X-API-Key": "test_api_key"})
-    assert response.status_code == 200
-
-def test_logs_ui_accessible_with_query_param():
+    from app.config import settings
+    from app.main import api_logger
     api_logger.clear_logs()
-    """Verify that /logs/ui is accessible with the correct api_key query parameter."""
-    response = client.get("/logs/ui?api_key=test_api_key")
+    monkeypatch.setattr(settings, "api_key", "secure_key")
+    response = client.get("/logs", headers={"X-API-Key": "secure_key"})
     assert response.status_code == 200
 
-def test_logs_inaccessible_with_wrong_key():
+def test_logs_ui_accessible_with_query_param(monkeypatch):
+    """Verify that /logs/ui is accessible with the correct api_key query parameter."""
+    from app.config import settings
+    from app.main import api_logger
+    api_logger.clear_logs()
+    monkeypatch.setattr(settings, "api_key", "secure_key")
+    response = client.get("/logs/ui?api_key=secure_key")
+    assert response.status_code == 200
+
+def test_logs_inaccessible_with_wrong_key(monkeypatch):
     """Verify that /logs returns 403 with an incorrect API Key."""
+    from app.config import settings
+    monkeypatch.setattr(settings, "api_key", "secure_key")
     response = client.get("/logs", headers={"X-API-Key": "wrong_key"})
     assert response.status_code == 403

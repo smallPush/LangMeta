@@ -100,7 +100,7 @@ async def test_get_comments(meta_client):
     post_id = "test_post_id"
     limit = 5
     expected_endpoint = f"{post_id}/comments"
-    expected_params = {"limit": limit, "fields": "id,message,created_time"}
+    expected_params = {"limit": limit, "fields": "id,message,created_time,likes.limit(5)"}
 
     with patch.object(meta_client, '_get', new_callable=AsyncMock) as mock_get:
         mock_get.return_value = {"data": []}
