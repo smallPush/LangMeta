@@ -5,6 +5,7 @@ import urllib.parse
 from app.config import settings
 from app.ports.social_media import SocialMediaPort
 from app.services.logger_service import api_logger
+from app.domain.exceptions import ExternalAPIError
 
 class MetaGraphAPIClient(SocialMediaPort):
     def __init__(self, client: Optional[httpx.AsyncClient] = None):
@@ -59,7 +60,13 @@ class MetaGraphAPIClient(SocialMediaPort):
                 response_time_ms=process_time_ms,
                 error=self._sanitize_string(str(exc))
             )
-            raise
+            detail = "Meta API request failed"
+            if hasattr(exc, "response") and exc.response is not None:
+                try:
+                    detail = exc.response.json()
+                except Exception:
+                    pass
+            raise ExternalAPIError(status_code=status_code, detail=detail) from exc
 
     async def _get(self, endpoint: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         return await self._request("GET", endpoint, params=params)

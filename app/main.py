@@ -1,10 +1,10 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Path, Query, Request, Header, Depends, Security
 from fastapi.security import APIKeyHeader, APIKeyQuery
-import httpx
 import hmac
 import hashlib
 from typing import Optional
+from app.domain.exceptions import ExternalAPIError
 from app.domain.models import (
     CommentRequest,
     CommentResponse,
@@ -22,8 +22,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 import time
 from app.services.logger_service import api_logger
 
-http_client = httpx.AsyncClient()
-meta_client = MetaGraphAPIClient(client=http_client)
+meta_client = MetaGraphAPIClient()
 social_media_service = SocialMediaService(meta_client)
 
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
@@ -48,7 +47,6 @@ async def lifespan(app: FastAPI):
     yield
     # Shutdown: Close the meta_client
     await social_media_service.aclose()
-    await http_client.aclose()
 
 app = FastAPI(
     title="Meta Graph API Integration",
@@ -83,14 +81,9 @@ async def log_requests(request: Request, call_next):
         )
         raise exc
 
-@app.exception_handler(httpx.HTTPStatusError)
-async def http_status_error_handler(request: Request, exc: httpx.HTTPStatusError):
-    status_code = exc.response.status_code if hasattr(exc, "response") and exc.response is not None else 500
-    try:
-        detail = exc.response.json()
-    except Exception:
-        detail = "Meta API request failed"
-    return JSONResponse(status_code=status_code, content={"detail": detail})
+@app.exception_handler(ExternalAPIError)
+async def http_status_error_handler(request: Request, exc: ExternalAPIError):
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):

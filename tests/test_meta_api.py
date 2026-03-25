@@ -9,6 +9,7 @@ import pytest
 import httpx
 from unittest.mock import patch, AsyncMock
 from app.adapters.meta_api import MetaGraphAPIClient
+from app.domain.exceptions import ExternalAPIError
 
 @pytest.fixture
 def meta_client():
@@ -35,16 +36,17 @@ async def test_get_success(meta_client):
 async def test_get_failure(meta_client):
     endpoint = "test_endpoint"
     mock_response = AsyncMock()
+    mock_response.status_code = 500
 
     def raise_error():
-        raise httpx.HTTPStatusError("Error", request=AsyncMock(), response=AsyncMock())
+        raise httpx.HTTPError("Error")
 
     mock_response.raise_for_status = raise_error
 
     with patch.object(meta_client.client, "send", new_callable=AsyncMock) as mock_send:
         mock_send.return_value = mock_response
 
-        with pytest.raises(httpx.HTTPStatusError):
+        with pytest.raises(ExternalAPIError):
             await meta_client._get(endpoint)
 
 @pytest.mark.asyncio
@@ -69,16 +71,17 @@ async def test_post_success(meta_client):
 async def test_post_failure(meta_client):
     endpoint = "test_endpoint"
     mock_response = AsyncMock()
+    mock_response.status_code = 500
 
     def raise_error():
-        raise httpx.HTTPStatusError("Error", request=AsyncMock(), response=AsyncMock())
+        raise httpx.HTTPError("Error")
 
     mock_response.raise_for_status = raise_error
 
     with patch.object(meta_client.client, "send", new_callable=AsyncMock) as mock_send:
         mock_send.return_value = mock_response
 
-        with pytest.raises(httpx.HTTPStatusError):
+        with pytest.raises(ExternalAPIError):
             await meta_client._post(endpoint)
 
 @pytest.mark.asyncio
@@ -106,13 +109,18 @@ async def test_api_logger_sanitization_on_error(meta_client):
 
     # Simulate an error response with the token in the error message
     error_msg = f"Error with token {meta_client.access_token} and encoded {urllib.parse.quote(meta_client.access_token)}"
-    mock_response = httpx.Response(500, request=mock_request)
-    http_error = httpx.HTTPStatusError(error_msg, request=mock_request, response=mock_response)
 
-    with patch.object(meta_client.client, "get", new_callable=AsyncMock) as mock_get:
-        mock_get.side_effect = http_error
+    class MockException(httpx.HTTPError):
+        def __init__(self, message):
+            super().__init__(message)
+            self.response = httpx.Response(500, request=mock_request)
 
-        with pytest.raises(httpx.HTTPStatusError):
+    http_error = MockException(error_msg)
+
+    with patch.object(meta_client.client, "send", new_callable=AsyncMock) as mock_send:
+        mock_send.side_effect = http_error
+
+        with pytest.raises(ExternalAPIError):
             await meta_client._get(endpoint)
 
     logs = api_logger.get_logs()
@@ -136,8 +144,8 @@ async def test_api_logger_sanitization_on_success(meta_client):
     mock_response.status_code = 200
     mock_response.raise_for_status = lambda: None
 
-    with patch.object(meta_client.client, "post", new_callable=AsyncMock) as mock_post:
-        mock_post.return_value = mock_response
+    with patch.object(meta_client.client, "send", new_callable=AsyncMock) as mock_send:
+        mock_send.return_value = mock_response
         await meta_client._post(endpoint, data={})
 
     logs = api_logger.get_logs()

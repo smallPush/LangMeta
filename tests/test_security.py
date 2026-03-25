@@ -13,7 +13,6 @@ os.environ["API_KEY"] = "secure_key"
 
 from app.main import app
 from app.config import settings
-settings.api_key = "secure_key"
 
 client = TestClient(app)
 
