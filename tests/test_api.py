@@ -309,3 +309,24 @@ def test_like_comment_internal_error(mock_like_object):
     response = client.post("/comments/test_comment_id/like")
     assert response.status_code == 500
     assert response.json() == {"detail": "Internal server error"}
+
+@patch("app.main.social_media_service.like_object", new_callable=AsyncMock)
+def test_like_comment_http_error(mock_like_object):
+    mock_request = httpx.Request("POST", "https://graph.facebook.com/v18.0/test_comment_id/likes")
+    mock_response = httpx.Response(404, request=mock_request)
+    mock_like_object.side_effect = httpx.HTTPStatusError("Not Found", request=mock_request, response=mock_response)
+
+    response = client.post("/comments/test_comment_id/like")
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Meta API request failed"}
+
+@patch("app.main.social_media_service.like_object", new_callable=AsyncMock)
+def test_like_comment_http_error_with_json(mock_like_object):
+    mock_request = httpx.Request("POST", "https://graph.facebook.com/v18.0/test_comment_id/likes")
+    json_error_payload = {"error": {"message": "Invalid parameter"}}
+    mock_response = httpx.Response(400, request=mock_request, json=json_error_payload)
+    mock_like_object.side_effect = httpx.HTTPStatusError("Bad Request", request=mock_request, response=mock_response)
+
+    response = client.post("/comments/test_comment_id/like")
+    assert response.status_code == 400
+    assert response.json() == {"detail": json_error_payload}
