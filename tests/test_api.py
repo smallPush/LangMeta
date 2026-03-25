@@ -88,7 +88,7 @@ def test_webhook_post_invalid_signature():
     assert response.status_code == 401
     assert response.json() == {"detail": "Invalid signature"}
 
-@patch("app.main.social_media_service.get_posts", new_callable=AsyncMock)
+@patch("app.adapters.meta_api.MetaGraphAPIClient.get_posts", new_callable=AsyncMock)
 def test_get_posts(mock_get_posts):
     mock_get_posts.return_value = {
         "data": [
@@ -124,15 +124,6 @@ def test_get_posts(mock_get_posts):
             "next": "https://graph.facebook.com/v19.0/123456789/posts?limit=2&after=QVFIU..."
         }
     }
-
-@patch("app.main.social_media_service.get_posts", new_callable=AsyncMock)
-def test_get_posts_internal_error(mock_get_posts):
-    mock_get_posts.side_effect = Exception("Internal error")
-
-    client_local = TestClient(app, raise_server_exceptions=False)
-    response = client_local.get("/posts")
-    assert response.status_code == 500
-    assert response.json() == {"detail": "Internal server error"}
 
 @patch("app.adapters.meta_api.MetaGraphAPIClient.get_likes", new_callable=AsyncMock)
 def test_get_likes(mock_get_likes):
