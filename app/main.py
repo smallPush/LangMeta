@@ -1,10 +1,15 @@
-from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException, Path, Query, Request, Header, Depends, Security
-from fastapi.security import APIKeyHeader, APIKeyQuery
-import httpx
 import hmac
 import hashlib
+import time
 from typing import Optional
+from contextlib import asynccontextmanager
+
+import httpx
+from fastapi import FastAPI, HTTPException, Path, Query, Request, Header, Depends, Security
+from fastapi.security import APIKeyHeader, APIKeyQuery
+from fastapi.responses import PlainTextResponse, JSONResponse, HTMLResponse, FileResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
 from app.domain.models import (
     CommentRequest,
     CommentResponse,
@@ -17,10 +22,8 @@ from app.domain.models import (
 from app.adapters.meta_api import MetaGraphAPIClient
 from app.services.social_media_service import SocialMediaService
 from app.config import settings
-from fastapi.responses import PlainTextResponse, JSONResponse, HTMLResponse, FileResponse
-from starlette.exceptions import HTTPException as StarletteHTTPException
-import time
 from app.services.logger_service import api_logger
+
 
 http_client = httpx.AsyncClient()
 meta_client = MetaGraphAPIClient(client=http_client)
