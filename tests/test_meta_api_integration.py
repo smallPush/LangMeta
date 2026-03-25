@@ -6,7 +6,6 @@ os.environ["META_APP_SECRET"] = os.environ.get("META_APP_SECRET", "your_meta_app
 os.environ["API_KEY"] = os.environ.get("API_KEY", "test_api_key")
 
 import pytest
-import httpx
 from app.adapters.meta_api import MetaGraphAPIClient
 from app.config import settings
 
