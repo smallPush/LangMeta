@@ -22,4 +22,4 @@ jobs:
         pip install pytest pytest-asyncio
     - name: Analysing the code with pylint
       run: |
-        pylint --disable=C,R,W $(git ls-files '*.py')
+        PYTHONPATH=. pylint --disable=C,R,W $(git ls-files '*.py')
