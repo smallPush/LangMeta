@@ -9,14 +9,15 @@ os.environ["META_WEBHOOK_VERIFY_TOKEN"] = "your_webhook_verify_token_here"
 os.environ["META_APP_SECRET"] = "your_meta_app_secret_here"
 os.environ["API_KEY"] = "test_api_key"
 
+from unittest.mock import patch, AsyncMock, MagicMock
 import pytest
+import httpx
 from fastapi import Request
 from fastapi.testclient import TestClient
+
 from app.main import app
 from app.config import settings
 settings.api_key = "test_api_key"
-import httpx
-from unittest.mock import patch, AsyncMock, MagicMock
 
 client = TestClient(app, raise_server_exceptions=False)
 
@@ -88,8 +89,9 @@ def test_webhook_post_invalid_signature():
     assert response.status_code == 401
     assert response.json() == {"detail": "Invalid signature"}
 
-@patch("app.adapters.meta_api.MetaGraphAPIClient.get_posts", new_callable=AsyncMock)
+@patch("app.main.social_media_service.get_posts", new_callable=AsyncMock)
 def test_get_posts(mock_get_posts):
+    """Test the get_posts endpoint."""
     mock_get_posts.return_value = {
         "data": [
             {
@@ -124,6 +126,16 @@ def test_get_posts(mock_get_posts):
             "next": "https://graph.facebook.com/v19.0/123456789/posts?limit=2&after=QVFIU..."
         }
     }
+
+@patch("app.main.social_media_service.get_posts", new_callable=AsyncMock)
+def test_get_posts_internal_error(mock_get_posts):
+    """Test the get_posts endpoint when an internal error occurs."""
+    mock_get_posts.side_effect = Exception("Internal error")
+
+    client_local = TestClient(app, raise_server_exceptions=False)
+    response = client_local.get("/posts")
+    assert response.status_code == 500
+    assert response.json() == {"detail": "Internal server error"}
 
 @patch("app.adapters.meta_api.MetaGraphAPIClient.get_likes", new_callable=AsyncMock)
 def test_get_likes(mock_get_likes):
