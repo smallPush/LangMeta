@@ -6,15 +6,17 @@ from app.ports.social_media import SocialMediaPort
 from app.services.logger_service import api_logger
 
 class MetaGraphAPIClient(SocialMediaPort):
-    def __init__(self):
+    def __init__(self, client: Optional[httpx.AsyncClient] = None):
         self.base_url = f"https://graph.facebook.com/{settings.meta_api_version}"
         self.access_token = settings.meta_access_token
         self.account_id = settings.meta_account_id
-        self.client = httpx.AsyncClient()
+        self._owns_client = client is None
+        self.client = client or httpx.AsyncClient()
 
     async def aclose(self):
         """Close the underlying HTTP client."""
-        await self.client.aclose()
+        if self._owns_client:
+            await self.client.aclose()
 
     async def _request(
         self, method: str, endpoint: str, params: Optional[Dict[str, Any]] = None, data: Optional[Dict[str, Any]] = None
