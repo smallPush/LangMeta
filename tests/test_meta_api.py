@@ -1,7 +1,6 @@
 import pytest
 import httpx
 from unittest.mock import patch, AsyncMock
-from app.adapters.meta_api import MetaGraphAPIClient
 
 @pytest.mark.asyncio
 async def test_get_success(meta_client):
