@@ -9,7 +9,6 @@ import pytest
 import httpx
 from unittest.mock import patch, AsyncMock
 from app.adapters.meta_api import MetaGraphAPIClient
-from app.config import settings
 
 @pytest.fixture
 def meta_client():
