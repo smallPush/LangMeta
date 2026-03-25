@@ -60,28 +60,25 @@ app = FastAPI(
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     start_time = time.time()
+    status_code = 500
+    error = None
     try:
         response = await call_next(request)
-        process_time_ms = (time.time() - start_time) * 1000
-        api_logger.log_call(
-            call_type="incoming",
-            method=request.method,
-            url=str(request.url.path),
-            status_code=response.status_code,
-            response_time_ms=process_time_ms
-        )
+        status_code = response.status_code
         return response
     except Exception as exc:
+        error = str(exc)
+        raise exc
+    finally:
         process_time_ms = (time.time() - start_time) * 1000
         api_logger.log_call(
             call_type="incoming",
             method=request.method,
             url=str(request.url.path),
-            status_code=500,
+            status_code=status_code,
             response_time_ms=process_time_ms,
-            error=str(exc)
+            error=error
         )
-        raise exc
 
 @app.exception_handler(httpx.HTTPStatusError)
 async def http_status_error_handler(request: Request, exc: httpx.HTTPStatusError):
