@@ -1,6 +1,8 @@
-import pytest
 from typing import Dict, Any
 from unittest.mock import AsyncMock
+
+import pytest
+
 from app.services.social_media_service import SocialMediaService
 from app.ports.social_media import SocialMediaPort
 

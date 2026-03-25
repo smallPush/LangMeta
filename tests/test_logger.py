@@ -6,12 +6,15 @@ os.environ["META_WEBHOOK_VERIFY_TOKEN"] = "your_webhook_verify_token_here"
 os.environ["META_APP_SECRET"] = "your_meta_app_secret_here"
 os.environ["API_KEY"] = "test_api_key"
 
+# pylint: disable=wrong-import-position
+import pytest
 from fastapi.testclient import TestClient
+
 from app.main import app
 from app.config import settings
-settings.api_key = "test_api_key"
 from app.services.logger_service import api_logger
-import pytest
+
+settings.api_key = "test_api_key"
 
 client = TestClient(app, raise_server_exceptions=False)
 

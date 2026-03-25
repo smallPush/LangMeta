@@ -1,5 +1,6 @@
-from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
+
+from pydantic import BaseModel, Field
 
 class CommentRequest(BaseModel):
     message: str = Field(..., description="The content of the comment")

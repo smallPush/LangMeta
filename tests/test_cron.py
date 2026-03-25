@@ -1,6 +1,7 @@
-import pytest
 from unittest.mock import patch, AsyncMock
-import builtins
+
+import pytest
+
 from cron import fetch_and_process, process_comment
 
 @pytest.mark.asyncio

@@ -5,9 +5,12 @@ os.environ["META_WEBHOOK_VERIFY_TOKEN"] = "your_webhook_verify_token_here"
 os.environ["META_APP_SECRET"] = "your_meta_app_secret_here"
 os.environ["API_KEY"] = "test_api_key"
 
-import pytest
-import httpx
+# pylint: disable=wrong-import-position
 from unittest.mock import patch, AsyncMock
+
+import httpx
+import pytest
+
 from app.adapters.meta_api import MetaGraphAPIClient
 
 @pytest.fixture

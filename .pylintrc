@@ -1,0 +1,24 @@
+[MASTER]
+ignore=CVS,.git,scenarios,.bzr
+ignore-patterns=
+
+[MESSAGES CONTROL]
+disable=
+    missing-module-docstring,
+    missing-class-docstring,
+    missing-function-docstring,
+    line-too-long,
+    too-few-public-methods,
+    too-many-arguments,
+    too-many-positional-arguments,
+    redefined-outer-name,
+    unused-argument,
+    unused-variable,
+    unused-import,
+    broad-exception-caught,
+    unnecessary-pass,
+    protected-access,
+    import-outside-toplevel,
+    reimported,
+    duplicate-code,
+    import-error

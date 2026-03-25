@@ -5,7 +5,9 @@ os.environ["META_WEBHOOK_VERIFY_TOKEN"] = os.environ.get("META_WEBHOOK_VERIFY_TO
 os.environ["META_APP_SECRET"] = os.environ.get("META_APP_SECRET", "your_meta_app_secret_here")
 os.environ["API_KEY"] = os.environ.get("API_KEY", "test_api_key")
 
+# pylint: disable=wrong-import-position
 import pytest
+
 from app.adapters.meta_api import MetaGraphAPIClient
 from app.config import settings
 
@@ -13,9 +15,9 @@ from app.config import settings
 # We check if META_ACCESS_TOKEN and META_ACCOUNT_ID are not the default/placeholder ones
 def is_real_config():
     return (
-        settings.meta_access_token 
+        settings.meta_access_token
         and settings.meta_access_token != "test_access_token"
-        and settings.meta_account_id 
+        and settings.meta_account_id
         and settings.meta_account_id != "test_account_id"
     )
 
@@ -43,7 +45,7 @@ async def test_real_get_comments_on_first_post(real_meta_client):
     posts = await real_meta_client.get_posts(limit=1)
     if not posts["data"]:
         pytest.skip("No posts found to test comments on.")
-    
+
     post_id = posts["data"][0]["id"]
     result = await real_meta_client.get_comments(post_id, limit=1)
     assert "data" in result
@@ -55,7 +57,7 @@ async def test_real_get_likes_on_first_post(real_meta_client):
     posts = await real_meta_client.get_posts(limit=1)
     if not posts["data"]:
         pytest.skip("No posts found to test likes on.")
-    
+
     post_id = posts["data"][0]["id"]
     result = await real_meta_client.get_likes(post_id, limit=1)
     assert "data" in result

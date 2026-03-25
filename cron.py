@@ -16,7 +16,7 @@ async def fetch_and_process():
         http_client = httpx.AsyncClient()
         client = MetaGraphAPIClient(client=http_client)
         service = SocialMediaService(client)
-        
+
         # Fetch posts
         posts_response = await service.get_posts(limit=5)
         posts = posts_response.get("data", [])
