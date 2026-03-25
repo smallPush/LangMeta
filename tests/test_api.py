@@ -1,23 +1,18 @@
-import os
-import json
-import hmac
 import hashlib
-
-os.environ["META_ACCESS_TOKEN"] = "test_access_token"
-os.environ["META_ACCOUNT_ID"] = "test_account_id"
-os.environ["META_WEBHOOK_VERIFY_TOKEN"] = "your_webhook_verify_token_here"
-os.environ["META_APP_SECRET"] = "your_meta_app_secret_here"
-os.environ["API_KEY"] = "test_api_key"
+import hmac
+import json
+import os
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import Request
 from fastapi.testclient import TestClient
-from app.main import app
-from app.config import settings
-settings.api_key = "test_api_key"
-from app.domain.exceptions import ExternalAPIError
-from unittest.mock import patch, AsyncMock, MagicMock
 
+from app.config import settings
+from app.domain.exceptions import ExternalAPIError
+from app.main import app
+
+settings.api_key = "test_api_key"
 client = TestClient(app, raise_server_exceptions=False)
 
 def test_health_check():
@@ -195,10 +190,12 @@ async def test_log_requests_middleware_exception(mock_log_call):
 
 @pytest.mark.asyncio
 async def test_http_status_error_handler_with_json():
-    from app.main import http_status_error_handler
-    from fastapi import Request
-    from unittest.mock import MagicMock
     import json
+    from unittest.mock import MagicMock
+
+    from fastapi import Request
+
+    from app.main import http_status_error_handler
 
     mock_request = MagicMock(spec=Request)
     exc = ExternalAPIError(status_code=400, detail={"error": {"message": "Invalid parameter"}})
@@ -210,10 +207,12 @@ async def test_http_status_error_handler_with_json():
 
 @pytest.mark.asyncio
 async def test_http_status_error_handler_without_json():
-    from app.main import http_status_error_handler
-    from fastapi import Request
-    from unittest.mock import MagicMock
     import json
+    from unittest.mock import MagicMock
+
+    from fastapi import Request
+
+    from app.main import http_status_error_handler
 
     mock_request = MagicMock(spec=Request)
     exc = ExternalAPIError(status_code=500, detail="Meta API request failed")
@@ -225,10 +224,12 @@ async def test_http_status_error_handler_without_json():
 
 @pytest.mark.asyncio
 async def test_http_status_error_handler_missing_response():
-    from app.main import http_status_error_handler
-    from fastapi import Request
-    from unittest.mock import MagicMock
     import json
+    from unittest.mock import MagicMock
+
+    from fastapi import Request
+
+    from app.main import http_status_error_handler
 
     mock_request = MagicMock(spec=Request)
     exc = ExternalAPIError(status_code=500, detail="Meta API request failed")
@@ -241,10 +242,12 @@ async def test_http_status_error_handler_missing_response():
 
 @pytest.mark.asyncio
 async def test_generic_exception_handler_standard_exception():
-    from app.main import generic_exception_handler
-    from fastapi import Request
-    from unittest.mock import MagicMock
     import json
+    from unittest.mock import MagicMock
+
+    from fastapi import Request
+
+    from app.main import generic_exception_handler
 
     mock_request = MagicMock(spec=Request)
     exc = Exception("A standard exception occurred")
@@ -256,11 +259,13 @@ async def test_generic_exception_handler_standard_exception():
 
 @pytest.mark.asyncio
 async def test_generic_exception_handler_starlette_http_exception():
-    from app.main import generic_exception_handler
+    import json
+    from unittest.mock import MagicMock
+
     from fastapi import Request
     from starlette.exceptions import HTTPException as StarletteHTTPException
-    from unittest.mock import MagicMock
-    import json
+
+    from app.main import generic_exception_handler
 
     mock_request = MagicMock(spec=Request)
     exc = StarletteHTTPException(status_code=403, detail="Forbidden access")
@@ -274,6 +279,7 @@ async def test_generic_exception_handler_starlette_http_exception():
 def test_generic_exception_handler_integration_standard():
     client_local = TestClient(app, raise_server_exceptions=False)
     from app.main import get_api_key
+
     # Bypass api key check to test the exception handler directly
     app.dependency_overrides[get_api_key] = lambda: "test_api_key"
     try:
@@ -287,6 +293,7 @@ def test_generic_exception_handler_integration_standard():
 def test_generic_exception_handler_integration_starlette():
     client_local = TestClient(app, raise_server_exceptions=False)
     from app.main import get_api_key
+
     # Bypass api key check to test the exception handler directly
     app.dependency_overrides[get_api_key] = lambda: "test_api_key"
     from starlette.exceptions import HTTPException as StarletteHTTPException

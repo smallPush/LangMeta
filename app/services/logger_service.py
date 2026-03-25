@@ -1,6 +1,8 @@
 import time
-from typing import List, Dict, Any
 from threading import Lock
+from typing import Any, Dict, List
+
+
 class APILogger:
     def __init__(self, maxlen: int = 1000):
         self.logs: List[Dict[str, Any]] = []

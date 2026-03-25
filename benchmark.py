@@ -1,7 +1,8 @@
 import asyncio
 import time
-from app.adapters.meta_api import MetaGraphAPIClient
 from unittest.mock import patch
+
+from app.adapters.meta_api import MetaGraphAPIClient
 
 # Mock data
 posts_data = {

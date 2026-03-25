@@ -1,11 +1,14 @@
-import httpx
-from typing import Dict, Any, Optional
 import time
 import urllib.parse
+from typing import Any, Dict, Optional
+
+import httpx
+
 from app.config import settings
+from app.domain.exceptions import ExternalAPIError
 from app.ports.social_media import SocialMediaPort
 from app.services.logger_service import api_logger
-from app.domain.exceptions import ExternalAPIError
+
 
 class MetaGraphAPIClient(SocialMediaPort):
     def __init__(self, client: Optional[httpx.AsyncClient] = None):

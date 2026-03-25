@@ -1,15 +1,11 @@
-import os
-os.environ["META_ACCESS_TOKEN"] = "test_access_token"
-os.environ["META_ACCOUNT_ID"] = "test_account_id"
-os.environ["META_WEBHOOK_VERIFY_TOKEN"] = "your_webhook_verify_token_here"
-os.environ["META_APP_SECRET"] = "your_meta_app_secret_here"
-os.environ["API_KEY"] = "test_api_key"
+from unittest.mock import AsyncMock, patch
 
-import pytest
 import httpx
-from unittest.mock import patch, AsyncMock
+import pytest
+
 from app.adapters.meta_api import MetaGraphAPIClient
 from app.domain.exceptions import ExternalAPIError
+
 
 @pytest.fixture
 def meta_client():
@@ -99,8 +95,9 @@ async def test_get_posts(meta_client):
 
 @pytest.mark.asyncio
 async def test_api_logger_sanitization_on_error(meta_client):
-    from app.services.logger_service import api_logger
     import urllib.parse
+
+    from app.services.logger_service import api_logger
     api_logger.clear_logs()
 
     endpoint = "test_error_sanitization"

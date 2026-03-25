@@ -1,7 +1,10 @@
 import asyncio
+
 import httpx
+
 from app.adapters.meta_api import MetaGraphAPIClient
 from app.services.social_media_service import SocialMediaService
+
 
 async def process_comment(service, comment):
     comment_id = comment.get("id")

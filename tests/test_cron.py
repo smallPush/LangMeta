@@ -1,7 +1,10 @@
-import pytest
-from unittest.mock import patch, AsyncMock
 import builtins
+from unittest.mock import AsyncMock, patch
+
+import pytest
+
 from cron import fetch_and_process, process_comment
+
 
 @pytest.mark.asyncio
 @patch("app.services.social_media_service.SocialMediaService.get_posts", new_callable=AsyncMock)

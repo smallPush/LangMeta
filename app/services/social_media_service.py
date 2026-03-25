@@ -1,5 +1,7 @@
-from typing import Dict, Any
+from typing import Any, Dict
+
 from app.ports.social_media import SocialMediaPort
+
 
 class SocialMediaService:
     def __init__(self, client: SocialMediaPort):
