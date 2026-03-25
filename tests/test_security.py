@@ -1,7 +1,5 @@
-import pytest
 from fastapi.testclient import TestClient
 
-from app.config import settings
 from app.main import app
 
 # Note: os.environ is now set in tests/conftest.py for consistency

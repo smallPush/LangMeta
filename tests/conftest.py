@@ -1,6 +1,6 @@
-import os
+"""Pytest configuration file."""
 
-import pytest
+import os
 
 # Centralized environment variables to prevent duplicate-code pylint errors
 os.environ["META_ACCESS_TOKEN"] = "test_access_token"
