@@ -1,6 +1,7 @@
 import httpx
 from typing import Dict, Any, Optional
 import time
+import urllib.parse
 from app.config import settings
 from app.ports.social_media import SocialMediaPort
 from app.services.logger_service import api_logger
@@ -12,6 +13,13 @@ class MetaGraphAPIClient(SocialMediaPort):
         self.account_id = settings.meta_account_id
         self._owns_client = client is None
         self.client = client or httpx.AsyncClient()
+
+    def _sanitize_string(self, text: str) -> str:
+        if not text:
+            return text
+        encoded_token = urllib.parse.quote(self.access_token)
+        encoded_token_plus = urllib.parse.quote_plus(self.access_token)
+        return text.replace(self.access_token, "***").replace(encoded_token, "***").replace(encoded_token_plus, "***")
 
     async def aclose(self):
         """Close the underlying HTTP client."""
@@ -49,7 +57,7 @@ class MetaGraphAPIClient(SocialMediaPort):
                 url=url,
                 status_code=status_code,
                 response_time_ms=process_time_ms,
-                error=str(exc)
+                error=self._sanitize_string(str(exc))
             )
             raise
 
