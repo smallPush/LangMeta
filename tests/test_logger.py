@@ -8,6 +8,8 @@ os.environ["API_KEY"] = "test_api_key"
 
 from fastapi.testclient import TestClient
 from app.main import app
+from app.config import settings
+settings.api_key = "test_api_key"
 from app.services.logger_service import api_logger
 import pytest
 
@@ -30,10 +32,11 @@ def test_logger_middleware_incoming():
     assert logs[0]["status_code"] == 200
 
 def test_logger_get_logs_endpoint():
+    api_logger.clear_logs()
     # Make a request to generate a log
     client.get("/health")
 
-    response = client.get("/logs", headers={"X-API-Key": "test_api_key"})
+    response = client.get("/logs", headers={"X-API-Key": settings.api_key})
     assert response.status_code == 200
 
     data = response.json()
@@ -45,7 +48,8 @@ def test_logger_get_logs_endpoint():
     assert data["logs"][0]["url"] == "/health"
 
 def test_logger_ui_endpoint():
-    response = client.get("/logs/ui?api_key=test_api_key")
+    api_logger.clear_logs()
+    response = client.get(f"/logs/ui?api_key={settings.api_key}")
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
     assert "API Call Logs" in response.text
