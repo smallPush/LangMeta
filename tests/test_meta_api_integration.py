@@ -1,4 +1,3 @@
-
 import pytest
 
 from app.adapters.meta_api import MetaGraphAPIClient

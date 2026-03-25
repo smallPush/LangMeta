@@ -5,11 +5,12 @@ import pytest
 
 from app.adapters.meta_api import MetaGraphAPIClient
 
-
 @pytest.fixture
 def meta_client():
     """Test function docstring."""
     return MetaGraphAPIClient()
+
+from unittest.mock import patch, AsyncMock
 
 @pytest.mark.asyncio
 async def test_get_success(meta_client):
