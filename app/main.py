@@ -33,9 +33,9 @@ async def get_api_key(
     api_key_header: str = Security(api_key_header),
     api_key_query: str = Security(api_key_query),
 ):
-    if api_key_header == settings.api_key:
+    if api_key_header is not None and hmac.compare_digest(api_key_header, settings.api_key):
         return api_key_header
-    if api_key_query == settings.api_key:
+    if api_key_query is not None and hmac.compare_digest(api_key_query, settings.api_key):
         return api_key_query
     raise HTTPException(
         status_code=403,
