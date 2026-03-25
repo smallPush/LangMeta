@@ -47,7 +47,7 @@ async def fetch_and_process():
 
         await client.aclose()
         await http_client.aclose()
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-exception-caught
         print(f"An error occurred during cron execution: {e}")
 
 if __name__ == "__main__":
