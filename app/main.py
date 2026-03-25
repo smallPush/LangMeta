@@ -66,7 +66,7 @@ async def log_requests(request: Request, call_next):
         response = await call_next(request)
         status_code = response.status_code
         return response
-    except Exception as exc:
+    except Exception as exc:  # pylint: disable=broad-exception-caught
         error = str(exc)
         raise exc
     finally:
