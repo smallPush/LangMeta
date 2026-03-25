@@ -8,7 +8,7 @@ posts_data = {
     "data": [{"id": f"post_{i}"} for i in range(5)]
 }
 comments_data = {
-    "data": [{"id": f"comment_{i}"} for i in range(5)]
+    "data": [{"id": f"comment_{i}", "likes": {"data": [{"id": f"like_{j}"} for j in range(2)]}} for i in range(5)]
 }
 likes_data = {
     "data": [{"id": f"like_{i}"} for i in range(2)]

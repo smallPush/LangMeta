@@ -16,17 +16,16 @@ async def test_fetch_and_process_success(mock_print, mock_get_comments, mock_get
         ]
     }
 
-    # get_likes is called for post and then for comments
+    # get_likes is called for post only now
     # We can use side_effect or just return a static list for all calls
-    # Let's provide likes for post_1, and likes for comment_1
+    # Let's provide likes for post_1
     mock_get_likes.side_effect = [
         {"data": [{"id": "like_1"}, {"id": "like_2"}]}, # likes for post_1
-        {"data": [{"id": "like_3"}]} # likes for comment_1
     ]
 
     mock_get_comments.return_value = {
         "data": [
-            {"id": "comment_1"}
+            {"id": "comment_1", "likes": {"data": [{"id": "like_3"}]}}
         ]
     }
 
@@ -37,11 +36,9 @@ async def test_fetch_and_process_success(mock_print, mock_get_comments, mock_get
     mock_get_posts.assert_called_once_with(limit=5)
 
     # Assert get_likes was called correctly
-    # 1. For the post
-    # 2. For the comment
-    assert mock_get_likes.call_count == 2
+    # 1. For the post only
+    assert mock_get_likes.call_count == 1
     mock_get_likes.assert_any_call("post_1", limit=5)
-    mock_get_likes.assert_any_call("comment_1", limit=5)
 
     # Assert get_comments was called correctly
     mock_get_comments.assert_called_once_with("post_1", limit=5)
@@ -71,14 +68,15 @@ async def test_fetch_and_process_exception(mock_print, mock_get_posts):
 @patch("builtins.print")
 async def test_process_comment_success(mock_print):
     mock_service = AsyncMock()
-    mock_service.get_likes.return_value = {
-        "data": [{"id": "like_1"}, {"id": "like_2"}]
-    }
 
-    comment = {"id": "comment_123"}
+    comment = {
+        "id": "comment_123",
+        "likes": {
+            "data": [{"id": "like_1"}, {"id": "like_2"}]
+        }
+    }
     await process_comment(mock_service, comment)
 
-    mock_service.get_likes.assert_called_once_with("comment_123", limit=5)
     mock_print.assert_any_call("  Processing comment: comment_123")
     mock_print.assert_any_call("    Comment comment_123 has 2 likes.")
 
@@ -86,13 +84,9 @@ async def test_process_comment_success(mock_print):
 @patch("builtins.print")
 async def test_process_comment_no_likes(mock_print):
     mock_service = AsyncMock()
-    mock_service.get_likes.return_value = {
-        "data": []
-    }
 
     comment = {"id": "comment_456"}
     await process_comment(mock_service, comment)
 
-    mock_service.get_likes.assert_called_once_with("comment_456", limit=5)
     mock_print.assert_any_call("  Processing comment: comment_456")
     mock_print.assert_any_call("    Comment comment_456 has 0 likes.")
