@@ -1,18 +1,13 @@
-import os
-import pytest
+
 from fastapi.testclient import TestClient
 
+from app.config import settings
+from app.main import app
+
 # Set up environment variables for config validation
-os.environ["META_ACCESS_TOKEN"] = "test"
-os.environ["META_ACCOUNT_ID"] = "test"
-os.environ["META_WEBHOOK_VERIFY_TOKEN"] = "test"
-os.environ["META_APP_SECRET"] = "test"
 # In test_security.py, we override API_KEY but since app.main might be imported before this,
 # we should make sure we're testing against the actual settings.api_key.
-os.environ["API_KEY"] = "secure_key"
 
-from app.main import app
-from app.config import settings
 settings.api_key = "secure_key"
 
 client = TestClient(app)

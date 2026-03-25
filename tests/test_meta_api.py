@@ -1,21 +1,19 @@
-import os
-os.environ["META_ACCESS_TOKEN"] = "test_access_token"
-os.environ["META_ACCOUNT_ID"] = "test_account_id"
-os.environ["META_WEBHOOK_VERIFY_TOKEN"] = "your_webhook_verify_token_here"
-os.environ["META_APP_SECRET"] = "your_meta_app_secret_here"
-os.environ["API_KEY"] = "test_api_key"
+from unittest.mock import AsyncMock, patch
 
-import pytest
 import httpx
-from unittest.mock import patch, AsyncMock
+import pytest
+
 from app.adapters.meta_api import MetaGraphAPIClient
+
 
 @pytest.fixture
 def meta_client():
+    """Test function docstring."""
     return MetaGraphAPIClient()
 
 @pytest.mark.asyncio
 async def test_get_success(meta_client):
+    """Test function docstring."""
     endpoint = "test_endpoint"
     params = {"test_param": "test_value"}
     expected_url = f"{meta_client.base_url}/{endpoint}"
@@ -33,10 +31,12 @@ async def test_get_success(meta_client):
 
 @pytest.mark.asyncio
 async def test_get_failure(meta_client):
+    """Test function docstring."""
     endpoint = "test_endpoint"
     mock_response = AsyncMock()
 
     def raise_error():
+        """Test function docstring."""
         raise httpx.HTTPStatusError("Error", request=AsyncMock(), response=AsyncMock())
 
     mock_response.raise_for_status = raise_error
@@ -49,6 +49,7 @@ async def test_get_failure(meta_client):
 
 @pytest.mark.asyncio
 async def test_post_success(meta_client):
+    """Test function docstring."""
     endpoint = "test_endpoint"
     data = {"test_data": "test_value"}
     expected_url = f"{meta_client.base_url}/{endpoint}"
@@ -67,10 +68,12 @@ async def test_post_success(meta_client):
 
 @pytest.mark.asyncio
 async def test_post_failure(meta_client):
+    """Test function docstring."""
     endpoint = "test_endpoint"
     mock_response = AsyncMock()
 
     def raise_error():
+        """Test function docstring."""
         raise httpx.HTTPStatusError("Error", request=AsyncMock(), response=AsyncMock())
 
     mock_response.raise_for_status = raise_error
@@ -83,6 +86,7 @@ async def test_post_failure(meta_client):
 
 @pytest.mark.asyncio
 async def test_get_posts(meta_client):
+    """Test function docstring."""
     limit = 5
     expected_endpoint = f"{meta_client.account_id}/posts"
     expected_params = {"limit": limit, "fields": "id,message,created_time"}
@@ -96,8 +100,10 @@ async def test_get_posts(meta_client):
 
 @pytest.mark.asyncio
 async def test_api_logger_sanitization_on_error(meta_client):
-    from app.services.logger_service import api_logger
+    """Test function docstring."""
     import urllib.parse
+
+    from app.services.logger_service import api_logger
     api_logger.clear_logs()
 
     endpoint = "test_error_sanitization"
@@ -127,6 +133,7 @@ async def test_api_logger_sanitization_on_error(meta_client):
 
 @pytest.mark.asyncio
 async def test_api_logger_sanitization_on_success(meta_client):
+    """Test function docstring."""
     from app.services.logger_service import api_logger
     api_logger.clear_logs()
 
@@ -148,6 +155,7 @@ async def test_api_logger_sanitization_on_success(meta_client):
 
 @pytest.mark.asyncio
 async def test_get_comments(meta_client):
+    """Test function docstring."""
     post_id = "test_post_id"
     limit = 5
     expected_endpoint = f"{post_id}/comments"
@@ -162,6 +170,7 @@ async def test_get_comments(meta_client):
 
 @pytest.mark.asyncio
 async def test_post_comment(meta_client):
+    """Test function docstring."""
     object_id = "test_object_id"
     message = "test message"
     expected_endpoint = f"{object_id}/comments"
@@ -176,6 +185,7 @@ async def test_post_comment(meta_client):
 
 @pytest.mark.asyncio
 async def test_like_object(meta_client):
+    """Test function docstring."""
     object_id = "test_object_id"
     expected_endpoint = f"{object_id}/likes"
 
@@ -188,6 +198,7 @@ async def test_like_object(meta_client):
 
 @pytest.mark.asyncio
 async def test_get_likes(meta_client):
+    """Test function docstring."""
     object_id = "test_object_id"
     limit = 20
     expected_endpoint = f"{object_id}/likes"

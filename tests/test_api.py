@@ -1,41 +1,41 @@
-import os
-import json
-import hmac
 import hashlib
-
-os.environ["META_ACCESS_TOKEN"] = "test_access_token"
-os.environ["META_ACCOUNT_ID"] = "test_account_id"
-os.environ["META_WEBHOOK_VERIFY_TOKEN"] = "your_webhook_verify_token_here"
-os.environ["META_APP_SECRET"] = "your_meta_app_secret_here"
-os.environ["API_KEY"] = "test_api_key"
+import hmac
+import json
 
 import pytest
 from fastapi import Request
 from fastapi.testclient import TestClient
-from app.main import app
+
 from app.config import settings
+from app.main import app
+
 settings.api_key = "test_api_key"
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import httpx
-from unittest.mock import patch, AsyncMock, MagicMock
 
 client = TestClient(app, raise_server_exceptions=False)
 
 def test_health_check():
+    """Test function docstring."""
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
 def test_webhook_get_success():
+    """Test function docstring."""
     response = client.get("/webhook?hub.mode=subscribe&hub.challenge=1158201444&hub.verify_token=your_webhook_verify_token_here")
     assert response.status_code == 200
     assert response.text == "1158201444"
 
 def test_webhook_get_failure():
+    """Test function docstring."""
     response = client.get("/webhook?hub.mode=subscribe&hub.challenge=1158201444&hub.verify_token=wrong_token")
     assert response.status_code == 403
 
 
 def test_webhook_post():
+    """Test function docstring."""
     payload = {
         "object": "instagram",
         "entry": [
@@ -73,12 +73,14 @@ def test_webhook_post():
     assert response.json() == {"status": "success"}
 
 def test_webhook_post_missing_signature():
+    """Test function docstring."""
     payload = {"object": "instagram", "entry": []}
     response = client.post("/webhook", json=payload)
     assert response.status_code == 401
     assert response.json() == {"detail": "Missing signature"}
 
 def test_webhook_post_invalid_signature():
+    """Test function docstring."""
     payload = {"object": "instagram", "entry": []}
     response = client.post(
         "/webhook",
@@ -90,6 +92,7 @@ def test_webhook_post_invalid_signature():
 
 @patch("app.adapters.meta_api.MetaGraphAPIClient.get_posts", new_callable=AsyncMock)
 def test_get_posts(mock_get_posts):
+    """Test function docstring."""
     mock_get_posts.return_value = {
         "data": [
             {
@@ -127,6 +130,7 @@ def test_get_posts(mock_get_posts):
 
 @patch("app.adapters.meta_api.MetaGraphAPIClient.get_likes", new_callable=AsyncMock)
 def test_get_likes(mock_get_likes):
+    """Test function docstring."""
     mock_get_likes.return_value = {"data": [{"id": "123", "name": "Test User"}]}
     response = client.get("/test_object_id/likes")
     assert response.status_code == 200
@@ -135,6 +139,7 @@ def test_get_likes(mock_get_likes):
 
 @patch("app.adapters.meta_api.MetaGraphAPIClient.get_comments", new_callable=AsyncMock)
 def test_get_comments(mock_get_comments):
+    """Test function docstring."""
     mock_get_comments.return_value = {
         "data": [{"id": "1", "message": "Test comment", "created_time": "2024-01-01T00:00:00+0000"}]
     }
@@ -147,6 +152,7 @@ def test_get_comments(mock_get_comments):
 
 @patch("app.adapters.meta_api.MetaGraphAPIClient.get_comments", new_callable=AsyncMock)
 def test_get_comments_http_error(mock_get_comments):
+    """Test function docstring."""
     mock_request = httpx.Request("GET", "https://graph.facebook.com/v18.0/test_post_id/comments")
     mock_response = httpx.Response(404, request=mock_request)
     mock_get_comments.side_effect = httpx.HTTPStatusError("Not Found", request=mock_request, response=mock_response)
@@ -157,6 +163,7 @@ def test_get_comments_http_error(mock_get_comments):
 
 @patch("app.adapters.meta_api.MetaGraphAPIClient.get_comments", new_callable=AsyncMock)
 def test_get_comments_http_error_with_json(mock_get_comments):
+    """Test function docstring."""
     mock_request = httpx.Request("GET", "https://graph.facebook.com/v18.0/test_post_id/comments")
     json_error_payload = {"error": {"message": "Invalid OAuth access token.", "type": "OAuthException", "code": 190, "fbtrace_id": "ABC"}}
     mock_response = httpx.Response(401, request=mock_request, json=json_error_payload)
@@ -168,6 +175,7 @@ def test_get_comments_http_error_with_json(mock_get_comments):
 
 @patch("app.adapters.meta_api.MetaGraphAPIClient.get_comments", new_callable=AsyncMock)
 def test_get_comments_internal_error(mock_get_comments):
+    """Test function docstring."""
     mock_get_comments.side_effect = Exception("Internal error")
 
     response = client.get("/posts/test_post_id/comments")
@@ -178,12 +186,14 @@ def test_get_comments_internal_error(mock_get_comments):
 @pytest.mark.asyncio
 @patch("app.main.api_logger.log_call")
 async def test_log_requests_middleware_exception(mock_log_call):
+    """Test function docstring."""
     from app.main import log_requests
     mock_request = MagicMock(spec=Request)
     mock_request.method = "GET"
     mock_request.url.path = "/test-middleware-error"
 
     async def mock_call_next(request):
+        """Test function docstring."""
         raise RuntimeError("Simulated middleware error")
 
     with pytest.raises(RuntimeError, match="Simulated middleware error"):
@@ -199,10 +209,13 @@ async def test_log_requests_middleware_exception(mock_log_call):
 
 @pytest.mark.asyncio
 async def test_http_status_error_handler_with_json():
-    from app.main import http_status_error_handler
-    from fastapi import Request
-    from unittest.mock import MagicMock
+    """Test function docstring."""
     import json
+    from unittest.mock import MagicMock
+
+    from fastapi import Request
+
+    from app.main import http_status_error_handler
 
     mock_request = MagicMock(spec=Request)
     mock_request_httpx = httpx.Request("GET", "https://graph.facebook.com/v18.0/test")
@@ -216,10 +229,13 @@ async def test_http_status_error_handler_with_json():
 
 @pytest.mark.asyncio
 async def test_http_status_error_handler_without_json():
-    from app.main import http_status_error_handler
-    from fastapi import Request
-    from unittest.mock import MagicMock
+    """Test function docstring."""
     import json
+    from unittest.mock import MagicMock
+
+    from fastapi import Request
+
+    from app.main import http_status_error_handler
 
     mock_request = MagicMock(spec=Request)
     mock_request_httpx = httpx.Request("GET", "https://graph.facebook.com/v18.0/test")
@@ -233,10 +249,13 @@ async def test_http_status_error_handler_without_json():
 
 @pytest.mark.asyncio
 async def test_http_status_error_handler_missing_response():
-    from app.main import http_status_error_handler
-    from fastapi import Request
-    from unittest.mock import MagicMock
+    """Test function docstring."""
     import json
+    from unittest.mock import MagicMock
+
+    from fastapi import Request
+
+    from app.main import http_status_error_handler
 
     mock_request = MagicMock(spec=Request)
     mock_request_httpx = httpx.Request("GET", "https://graph.facebook.com/v18.0/test")
@@ -250,10 +269,13 @@ async def test_http_status_error_handler_missing_response():
 
 @pytest.mark.asyncio
 async def test_generic_exception_handler_standard_exception():
-    from app.main import generic_exception_handler
-    from fastapi import Request
-    from unittest.mock import MagicMock
+    """Test function docstring."""
     import json
+    from unittest.mock import MagicMock
+
+    from fastapi import Request
+
+    from app.main import generic_exception_handler
 
     mock_request = MagicMock(spec=Request)
     exc = Exception("A standard exception occurred")
@@ -265,11 +287,14 @@ async def test_generic_exception_handler_standard_exception():
 
 @pytest.mark.asyncio
 async def test_generic_exception_handler_starlette_http_exception():
-    from app.main import generic_exception_handler
+    """Test function docstring."""
+    import json
+    from unittest.mock import MagicMock
+
     from fastapi import Request
     from starlette.exceptions import HTTPException as StarletteHTTPException
-    from unittest.mock import MagicMock
-    import json
+
+    from app.main import generic_exception_handler
 
     mock_request = MagicMock(spec=Request)
     exc = StarletteHTTPException(status_code=403, detail="Forbidden access")
@@ -281,6 +306,7 @@ async def test_generic_exception_handler_starlette_http_exception():
 
 
 def test_generic_exception_handler_integration_standard():
+    """Test function docstring."""
     client_local = TestClient(app, raise_server_exceptions=False)
     with patch("app.main.api_logger.get_logs", side_effect=Exception("Integration error")):
         response = client_local.get("/logs", headers={"X-API-Key": "test_api_key"})
@@ -288,6 +314,7 @@ def test_generic_exception_handler_integration_standard():
         assert response.json() == {"detail": "Internal server error"}
 
 def test_generic_exception_handler_integration_starlette():
+    """Test function docstring."""
     client_local = TestClient(app, raise_server_exceptions=False)
     from starlette.exceptions import HTTPException as StarletteHTTPException
     with patch("app.main.api_logger.get_logs", side_effect=StarletteHTTPException(status_code=401, detail="Unauthorized integration")):
@@ -297,6 +324,7 @@ def test_generic_exception_handler_integration_starlette():
 
 @patch("app.main.social_media_service.like_object", new_callable=AsyncMock)
 def test_like_comment_success(mock_like_object):
+    """Test function docstring."""
     mock_like_object.return_value = {"success": True}
     response = client.post("/comments/test_comment_id/like")
     assert response.status_code == 200
@@ -304,6 +332,7 @@ def test_like_comment_success(mock_like_object):
 
 @patch("app.main.social_media_service.like_object", new_callable=AsyncMock)
 def test_like_comment_internal_error(mock_like_object):
+    """Test function docstring."""
     mock_like_object.side_effect = Exception("Internal error")
 
     response = client.post("/comments/test_comment_id/like")
@@ -312,6 +341,7 @@ def test_like_comment_internal_error(mock_like_object):
 
 @patch("app.main.social_media_service.like_object", new_callable=AsyncMock)
 def test_like_comment_http_error(mock_like_object):
+    """Test function docstring."""
     mock_request = httpx.Request("POST", "https://graph.facebook.com/v18.0/test_comment_id/likes")
     mock_response = httpx.Response(404, request=mock_request)
     mock_like_object.side_effect = httpx.HTTPStatusError("Not Found", request=mock_request, response=mock_response)
@@ -322,6 +352,7 @@ def test_like_comment_http_error(mock_like_object):
 
 @patch("app.main.social_media_service.like_object", new_callable=AsyncMock)
 def test_like_comment_http_error_with_json(mock_like_object):
+    """Test function docstring."""
     mock_request = httpx.Request("POST", "https://graph.facebook.com/v18.0/test_comment_id/likes")
     json_error_payload = {"error": {"message": "Invalid parameter"}}
     mock_response = httpx.Response(400, request=mock_request, json=json_error_payload)

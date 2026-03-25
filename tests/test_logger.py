@@ -1,26 +1,24 @@
-import os
-
-os.environ["META_ACCESS_TOKEN"] = "test_access_token"
-os.environ["META_ACCOUNT_ID"] = "test_account_id"
-os.environ["META_WEBHOOK_VERIFY_TOKEN"] = "your_webhook_verify_token_here"
-os.environ["META_APP_SECRET"] = "your_meta_app_secret_here"
-os.environ["API_KEY"] = "test_api_key"
 
 from fastapi.testclient import TestClient
-from app.main import app
+
 from app.config import settings
+from app.main import app
+
 settings.api_key = "test_api_key"
-from app.services.logger_service import api_logger
 import pytest
+
+from app.services.logger_service import api_logger
 
 client = TestClient(app, raise_server_exceptions=False)
 
 @pytest.fixture(autouse=True)
 def clear_logs_before_test():
+    """Test function docstring."""
     api_logger.clear_logs()
     yield
 
 def test_logger_middleware_incoming():
+    """Test function docstring."""
     response = client.get("/health")
     assert response.status_code == 200
 
@@ -32,6 +30,7 @@ def test_logger_middleware_incoming():
     assert logs[0]["status_code"] == 200
 
 def test_logger_get_logs_endpoint():
+    """Test function docstring."""
     api_logger.clear_logs()
     # Make a request to generate a log
     client.get("/health")
@@ -48,6 +47,7 @@ def test_logger_get_logs_endpoint():
     assert data["logs"][0]["url"] == "/health"
 
 def test_logger_ui_endpoint():
+    """Test function docstring."""
     api_logger.clear_logs()
     response = client.get(f"/logs/ui?api_key={settings.api_key}")
     assert response.status_code == 200

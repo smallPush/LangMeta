@@ -1,11 +1,15 @@
-import pytest
-from typing import Dict, Any
+from typing import Any, Dict
 from unittest.mock import AsyncMock
-from app.services.social_media_service import SocialMediaService
+
+import pytest
+
 from app.ports.social_media import SocialMediaPort
+from app.services.social_media_service import SocialMediaService
+
 
 class MockSocialMediaClient(SocialMediaPort):
     def __init__(self):
+        """Test function docstring."""
         self.aclose_mock = AsyncMock()
         self.get_posts_mock = AsyncMock()
         self.get_comments_mock = AsyncMock()
@@ -14,38 +18,48 @@ class MockSocialMediaClient(SocialMediaPort):
         self.get_likes_mock = AsyncMock()
 
     async def aclose(self):
+        """Test function docstring."""
         return await self.aclose_mock()
 
     async def get_posts(self, limit: int = 10) -> Dict[str, Any]:
+        """Test function docstring."""
         return await self.get_posts_mock(limit=limit)
 
     async def get_comments(self, post_id: str, limit: int = 10) -> Dict[str, Any]:
+        """Test function docstring."""
         return await self.get_comments_mock(post_id=post_id, limit=limit)
 
     async def post_comment(self, object_id: str, message: str) -> Dict[str, Any]:
+        """Test function docstring."""
         return await self.post_comment_mock(object_id=object_id, message=message)
 
     async def like_object(self, object_id: str) -> Dict[str, Any]:
+        """Test function docstring."""
         return await self.like_object_mock(object_id=object_id)
 
     async def get_likes(self, object_id: str, limit: int = 10) -> Dict[str, Any]:
+        """Test function docstring."""
         return await self.get_likes_mock(object_id=object_id, limit=limit)
 
 @pytest.fixture
 def mock_client():
+    """Test function docstring."""
     return MockSocialMediaClient()
 
 @pytest.fixture
 def service(mock_client):
+    """Test function docstring."""
     return SocialMediaService(client=mock_client)
 
 @pytest.mark.asyncio
 async def test_aclose(service, mock_client):
+    """Test function docstring."""
     await service.aclose()
     mock_client.aclose_mock.assert_called_once()
 
 @pytest.mark.asyncio
 async def test_get_posts(service, mock_client):
+    """Test function docstring."""
     expected_response = {"data": [{"id": "1", "message": "Test Post"}]}
     mock_client.get_posts_mock.return_value = expected_response
 
@@ -56,6 +70,7 @@ async def test_get_posts(service, mock_client):
 
 @pytest.mark.asyncio
 async def test_get_comments(service, mock_client):
+    """Test function docstring."""
     expected_response = {"data": [{"id": "2", "message": "Test Comment"}]}
     mock_client.get_comments_mock.return_value = expected_response
 
@@ -66,6 +81,7 @@ async def test_get_comments(service, mock_client):
 
 @pytest.mark.asyncio
 async def test_post_comment(service, mock_client):
+    """Test function docstring."""
     expected_response = {"id": "new_comment_id"}
     mock_client.post_comment_mock.return_value = expected_response
 
@@ -76,6 +92,7 @@ async def test_post_comment(service, mock_client):
 
 @pytest.mark.asyncio
 async def test_like_object(service, mock_client):
+    """Test function docstring."""
     expected_response = {"success": True}
     mock_client.like_object_mock.return_value = expected_response
 
@@ -86,6 +103,7 @@ async def test_like_object(service, mock_client):
 
 @pytest.mark.asyncio
 async def test_get_likes(service, mock_client):
+    """Test function docstring."""
     expected_response = {"data": [{"id": "user123", "name": "John Doe"}]}
     mock_client.get_likes_mock.return_value = expected_response
 

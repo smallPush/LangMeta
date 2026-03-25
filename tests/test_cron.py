@@ -1,7 +1,9 @@
+from unittest.mock import AsyncMock, patch
+
 import pytest
-from unittest.mock import patch, AsyncMock
-import builtins
+
 from cron import fetch_and_process, process_comment
+
 
 @pytest.mark.asyncio
 @patch("app.services.social_media_service.SocialMediaService.get_posts", new_callable=AsyncMock)
@@ -9,6 +11,7 @@ from cron import fetch_and_process, process_comment
 @patch("app.services.social_media_service.SocialMediaService.get_comments", new_callable=AsyncMock)
 @patch("builtins.print")
 async def test_fetch_and_process_success(mock_print, mock_get_comments, mock_get_likes, mock_get_posts):
+    """Test function docstring."""
     # Setup mock returns
     mock_get_posts.return_value = {
         "data": [
@@ -54,6 +57,7 @@ async def test_fetch_and_process_success(mock_print, mock_get_comments, mock_get
 @patch("app.services.social_media_service.SocialMediaService.get_posts", new_callable=AsyncMock)
 @patch("builtins.print")
 async def test_fetch_and_process_exception(mock_print, mock_get_posts):
+    """Test function docstring."""
     # Setup mock to raise exception
     mock_get_posts.side_effect = Exception("Test exception")
 
@@ -67,6 +71,7 @@ async def test_fetch_and_process_exception(mock_print, mock_get_posts):
 @pytest.mark.asyncio
 @patch("builtins.print")
 async def test_process_comment_success(mock_print):
+    """Test function docstring."""
     mock_service = AsyncMock()
 
     comment = {
@@ -83,6 +88,7 @@ async def test_process_comment_success(mock_print):
 @pytest.mark.asyncio
 @patch("builtins.print")
 async def test_process_comment_no_likes(mock_print):
+    """Test function docstring."""
     mock_service = AsyncMock()
 
     comment = {"id": "comment_456"}
