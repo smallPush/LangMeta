@@ -11,8 +11,10 @@ os.environ["META_APP_SECRET"] = "test"
 # we should make sure we're testing against the actual settings.api_key.
 os.environ["API_KEY"] = "secure_key"
 
+# pylint: disable=wrong-import-position
 from app.main import app
 from app.config import settings
+
 settings.api_key = "secure_key"
 
 client = TestClient(app)
