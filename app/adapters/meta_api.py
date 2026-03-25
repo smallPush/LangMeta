@@ -50,7 +50,7 @@ class MetaGraphAPIClient(SocialMediaPort):
             return response.json()
         except httpx.HTTPError as exc:
             process_time_ms = (time.time() - start_time) * 1000
-            status_code = exc.response.status_code if hasattr(exc, "response") and exc.response else 500
+            status_code = exc.response.status_code if hasattr(exc, "response") and exc.response else 500  # pylint: disable=no-member
             api_logger.log_call(
                 call_type="outgoing",
                 method=method,
