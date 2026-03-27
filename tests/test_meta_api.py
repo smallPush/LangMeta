@@ -73,7 +73,7 @@ async def test_post_failure(meta_client):
 async def test_get_posts(meta_client):
     limit = 5
     expected_endpoint = f"{meta_client.account_id}/posts"
-    expected_params = {"limit": limit, "fields": "id,message,created_time"}
+    expected_params = {"limit": limit, "fields": "id,message,created_time,comments.limit(5){id,message,created_time,likes.limit(5)},likes.limit(5)"}
 
     with patch.object(meta_client, '_get', new_callable=AsyncMock) as mock_get:
         mock_get.return_value = {"data": []}

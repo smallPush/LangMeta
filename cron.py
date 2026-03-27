@@ -21,21 +21,15 @@ async def fetch_and_process():
         posts_response = await service.get_posts(limit=5)
         posts = posts_response.get("data", [])
 
-        # Fetch likes and comments for all posts concurrently
+        # Process all posts concurrently
         async def process_post(post):
             post_id = post.get("id")
             print(f"Processing post: {post_id}")
 
-            # Fetch likes and comments for the post concurrently
-            post_likes_response, comments_response = await asyncio.gather(
-                service.get_likes(post_id, limit=5),
-                service.get_comments(post_id, limit=5)
-            )
-
-            post_likes = post_likes_response.get("data", [])
+            post_likes = post.get("likes", {}).get("data", [])
             print(f"  Post {post_id} has {len(post_likes)} likes.")
 
-            comments = comments_response.get("data", [])
+            comments = post.get("comments", {}).get("data", [])
 
             # Fetch likes for all comments concurrently
             await asyncio.gather(*(process_comment(service, comment) for comment in comments))
