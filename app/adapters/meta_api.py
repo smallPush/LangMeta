@@ -70,7 +70,7 @@ class MetaGraphAPIClient(SocialMediaPort):
     async def get_posts(self, limit: int = 10) -> Dict[str, Any]:
         """Fetch posts from the configured account."""
         endpoint = f"{self.account_id}/posts"
-        params = {"limit": limit, "fields": "id,message,created_time"}
+        params = {"limit": limit, "fields": "id,message,created_time,comments.limit(5){id,message,created_time,likes.limit(5)},likes.limit(5)"}
         return await self._get(endpoint, params)
 
     async def get_comments(self, post_id: str, limit: int = 10) -> Dict[str, Any]:
