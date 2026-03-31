@@ -137,7 +137,7 @@ async def verify_webhook(
     hub_verify_token: str = Query(None, alias="hub.verify_token")
 ):
     if hub_mode == "subscribe" and hub_verify_token is not None and hmac.compare_digest(hub_verify_token, settings.meta_webhook_verify_token):
-        print("Webhook verified successfully!")
+        api_logger.log_webhook_event("GET", "/webhook", 200, "verification")
         return PlainTextResponse(content=hub_challenge, status_code=200)
     raise HTTPException(status_code=403, detail="Verification failed")
 
@@ -171,7 +171,7 @@ async def handle_webhook(
         raise HTTPException(status_code=401, detail="Invalid signature")
 
     # Log or process the incoming webhook notifications
-    print("Received webhook payload:", payload.model_dump())
+    api_logger.log_webhook_event("POST", "/webhook", 200, "payload", payload.model_dump())
 
     return {"status": "success"}
 

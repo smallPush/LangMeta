@@ -45,3 +45,17 @@ def test_logger_ui_endpoint():
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
     assert "API Call Logs" in response.text
+
+def test_log_webhook_event():
+    api_logger.clear_logs()
+    payload = {"test": "payload"}
+    api_logger.log_webhook_event("POST", "/webhook", 200, "payload", payload=payload)
+
+    logs = api_logger.get_logs()
+    assert len(logs) == 1
+    assert logs[0]["type"] == "webhook"
+    assert logs[0]["method"] == "POST"
+    assert logs[0]["url"] == "/webhook"
+    assert logs[0]["status_code"] == 200
+    assert logs[0]["event_type"] == "payload"
+    assert logs[0]["payload"] == payload
