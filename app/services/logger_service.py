@@ -7,6 +7,12 @@ class APILogger:
         self.maxlen = maxlen
         self._lock = Lock()
 
+    def _add_log(self, log_entry: Dict[str, Any]):
+        with self._lock:
+            self.logs.append(log_entry)
+            if len(self.logs) > self.maxlen:
+                self.logs.pop(0)
+
     def log_call(self, call_type: str, method: str, url: str, status_code: int, response_time_ms: float, error: str = None):
         """
         Log an API call.
@@ -23,10 +29,26 @@ class APILogger:
         if error is not None:
             log_entry["error"] = error
 
-        with self._lock:
-            self.logs.append(log_entry)
-            if len(self.logs) > self.maxlen:
-                self.logs.pop(0)
+        self._add_log(log_entry)
+
+    def log_webhook_event(self, method: str, url: str, status_code: int, event_type: str, payload: Dict[str, Any] = None):
+        """
+        Log a webhook event.
+        event_type: "verification" or "payload"
+        """
+        log_entry = {
+            "timestamp": time.time(),
+            "type": "webhook",
+            "method": method,
+            "url": str(url),
+            "status_code": status_code,
+            "response_time_ms": 0.0,
+            "event_type": event_type,
+        }
+        if payload is not None:
+            log_entry["payload"] = payload
+
+        self._add_log(log_entry)
 
     def get_logs(self) -> List[Dict[str, Any]]:
         with self._lock:
