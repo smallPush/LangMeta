@@ -301,3 +301,24 @@ def test_like_comment_internal_error(mock_like_object):
     response = client.post("/comments/test_comment_id/like")
     assert response.status_code == 500
     assert response.json() == {"detail": "Internal server error"}
+
+@patch("app.main.social_media_service.post_comment", new_callable=AsyncMock)
+def test_create_comment_success(mock_post_comment):
+    mock_post_comment.return_value = {"id": "123_456"}
+    response = client.post("/posts/test_post_id/comments", json={"message": "Test comment"})
+    assert response.status_code == 200
+    assert response.json() == {"id": "123_456"}
+    mock_post_comment.assert_called_once_with("test_post_id", message="Test comment")
+
+@patch("app.main.social_media_service.post_comment", new_callable=AsyncMock)
+def test_create_comment_internal_error(mock_post_comment):
+    mock_post_comment.side_effect = Exception("Internal error")
+
+    response = client.post("/posts/test_post_id/comments", json={"message": "Test comment"})
+    assert response.status_code == 500
+    assert response.json() == {"detail": "Internal server error"}
+
+def test_create_comment_validation_error():
+    # Missing required 'message' field
+    response = client.post("/posts/test_post_id/comments", json={"invalid_field": "Test comment"})
+    assert response.status_code == 422
