@@ -80,12 +80,12 @@
 
                     tr.innerHTML = `
                         <td>${escapeHtml(date)}</td>
-                        <td class="${typeClass}"><b>${escapeHtml(log.type.toUpperCase())}</b></td>
+                        <td class="${escapeHtml(typeClass)}"><b>${escapeHtml(log.type.toUpperCase())}</b></td>
                         <td>${escapeHtml(log.method)}</td>
                         <td>${escapeHtml(log.url)}</td>
-                        <td class="${statusClass}">${escapeHtml(log.status_code)}</td>
+                        <td class="${escapeHtml(statusClass)}">${escapeHtml(log.status_code)}</td>
                         <td>${escapeHtml(log.response_time_ms.toFixed(2))}</td>
-                        <td class="${statusClass}">${escapeHtml(details)}</td>
+                        <td class="${escapeHtml(statusClass)}">${escapeHtml(details)}</td>
                     `;
                     tbody.appendChild(tr);
                 });
