@@ -117,6 +117,35 @@ def test_get_posts(mock_get_posts):
         }
     }
 
+@patch("app.adapters.meta_api.MetaGraphAPIClient.get_posts", new_callable=AsyncMock)
+def test_get_posts_http_error(mock_get_posts):
+    mock_request = httpx.Request("GET", "https://graph.facebook.com/v18.0/me/posts")
+    mock_response = httpx.Response(404, request=mock_request)
+    mock_get_posts.side_effect = httpx.HTTPStatusError("Not Found", request=mock_request, response=mock_response)
+
+    response = client.get("/posts")
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Meta API request failed"}
+
+@patch("app.adapters.meta_api.MetaGraphAPIClient.get_posts", new_callable=AsyncMock)
+def test_get_posts_http_error_with_json(mock_get_posts):
+    mock_request = httpx.Request("GET", "https://graph.facebook.com/v18.0/me/posts")
+    json_error_payload = {"error": {"message": "Invalid OAuth access token.", "type": "OAuthException", "code": 190, "fbtrace_id": "ABC"}}
+    mock_response = httpx.Response(401, request=mock_request, json=json_error_payload)
+    mock_get_posts.side_effect = httpx.HTTPStatusError("Unauthorized", request=mock_request, response=mock_response)
+
+    response = client.get("/posts")
+    assert response.status_code == 401
+    assert response.json() == {"detail": json_error_payload}
+
+@patch("app.adapters.meta_api.MetaGraphAPIClient.get_posts", new_callable=AsyncMock)
+def test_get_posts_internal_error(mock_get_posts):
+    mock_get_posts.side_effect = Exception("Internal error")
+
+    response = client.get("/posts")
+    assert response.status_code == 500
+    assert response.json() == {"detail": "Internal server error"}
+
 @patch("app.adapters.meta_api.MetaGraphAPIClient.get_likes", new_callable=AsyncMock)
 def test_get_likes(mock_get_likes):
     mock_get_likes.return_value = {"data": [{"id": "123", "name": "Test User"}]}
