@@ -80,6 +80,24 @@ def test_webhook_post_invalid_signature():
     assert response.status_code == 401
     assert response.json() == {"detail": "Invalid signature"}
 
+def test_webhook_post_invalid_json_format():
+    response = client.post(
+        "/webhook",
+        content="{invalid_json:",
+        headers={"Content-Type": "application/json"}
+    )
+    assert response.status_code == 422
+    assert "detail" in response.json()
+
+def test_webhook_post_missing_fields():
+    payload = {"invalid": "payload"}
+    response = client.post(
+        "/webhook",
+        json=payload
+    )
+    assert response.status_code == 422
+    assert "detail" in response.json()
+
 @patch("app.adapters.meta_api.MetaGraphAPIClient.get_posts", new_callable=AsyncMock)
 def test_get_posts(mock_get_posts):
     mock_get_posts.return_value = {
