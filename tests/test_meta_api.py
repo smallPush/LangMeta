@@ -78,6 +78,23 @@ async def test_get_posts(meta_client):
         mock_get.assert_called_once_with(expected_endpoint, expected_params)
         assert result == {"data": []}
 
+
+@pytest.mark.asyncio
+async def test_aclose_owns_client():
+    from app.adapters.meta_api import MetaGraphAPIClient
+    client = MetaGraphAPIClient()
+    with patch.object(client.client, "aclose", new_callable=AsyncMock) as mock_aclose:
+        await client.aclose()
+        mock_aclose.assert_called_once()
+
+@pytest.mark.asyncio
+async def test_aclose_does_not_own_client():
+    from app.adapters.meta_api import MetaGraphAPIClient
+    mock_httpx_client = AsyncMock()
+    client = MetaGraphAPIClient(client=mock_httpx_client)
+    await client.aclose()
+    mock_httpx_client.aclose.assert_not_called()
+
 @pytest.mark.asyncio
 async def test_api_logger_sanitization_on_error(meta_client):
     from app.services.logger_service import api_logger
