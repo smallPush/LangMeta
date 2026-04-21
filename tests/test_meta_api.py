@@ -6,8 +6,6 @@ from unittest.mock import patch, AsyncMock
 async def test_get_success(meta_client):
     endpoint = "test_endpoint"
     params = {"test_param": "test_value"}
-    expected_url = f"{meta_client.base_url}/{endpoint}"
-    expected_params = {"test_param": "test_value", "access_token": meta_client.access_token}
     mock_response = AsyncMock()
     mock_response.json = lambda: {"data": "test_data"}
     mock_response.raise_for_status = lambda: None
@@ -39,8 +37,6 @@ async def test_get_failure(meta_client):
 async def test_post_success(meta_client):
     endpoint = "test_endpoint"
     data = {"test_data": "test_value"}
-    expected_url = f"{meta_client.base_url}/{endpoint}"
-    expected_params = {"access_token": meta_client.access_token}
     mock_response = AsyncMock()
     mock_response.json = lambda: {"id": "test_id"}
     mock_response.raise_for_status = lambda: None
