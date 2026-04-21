@@ -59,3 +59,15 @@ def test_log_webhook_event():
     assert logs[0]["status_code"] == 200
     assert logs[0]["event_type"] == "payload"
     assert logs[0]["payload"] == payload
+
+def test_logger_maxlen():
+    from app.services.logger_service import APILogger
+    logger = APILogger(maxlen=2)
+    logger.log_call("incoming", "GET", "/test1", 200, 10.0)
+    logger.log_call("incoming", "GET", "/test2", 200, 10.0)
+    logger.log_call("incoming", "GET", "/test3", 200, 10.0)
+
+    logs = logger.get_logs()
+    assert len(logs) == 2
+    assert logs[0]["url"] == "/test2"
+    assert logs[1]["url"] == "/test3"
