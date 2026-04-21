@@ -25,6 +25,22 @@ def test_webhook_get_success():
 def test_webhook_get_failure():
     response = client.get("/webhook?hub.mode=subscribe&hub.challenge=1158201444&hub.verify_token=wrong_token")
     assert response.status_code == 403
+    assert response.json() == {"detail": "Verification failed"}
+
+def test_webhook_get_missing_mode():
+    response = client.get("/webhook?hub.challenge=1158201444&hub.verify_token=your_webhook_verify_token_here")
+    assert response.status_code == 403
+    assert response.json() == {"detail": "Verification failed"}
+
+def test_webhook_get_wrong_mode():
+    response = client.get("/webhook?hub.mode=unsubscribe&hub.challenge=1158201444&hub.verify_token=your_webhook_verify_token_here")
+    assert response.status_code == 403
+    assert response.json() == {"detail": "Verification failed"}
+
+def test_webhook_get_missing_token():
+    response = client.get("/webhook?hub.mode=subscribe&hub.challenge=1158201444")
+    assert response.status_code == 403
+    assert response.json() == {"detail": "Verification failed"}
 
 
 def test_webhook_post():
