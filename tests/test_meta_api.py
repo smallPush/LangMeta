@@ -78,6 +78,28 @@ async def test_get_posts(meta_client):
         mock_get.assert_called_once_with(expected_endpoint, expected_params)
         assert result == {"data": []}
 
+@pytest.mark.asyncio
+async def test_sanitize_string_edge_cases(meta_client):
+    import urllib.parse
+    meta_client.access_token = "secret_token"
+
+    # Test empty string
+    assert meta_client._sanitize_string("") == ""
+
+    # Test None
+    assert meta_client._sanitize_string(None) is None
+
+    # Test normal string with token
+    assert meta_client._sanitize_string("my token is secret_token") == "my token is ***"
+
+    # Test encoded token
+    encoded = urllib.parse.quote("secret_token")
+    assert meta_client._sanitize_string(f"my encoded token is {encoded}") == "my encoded token is ***"
+
+    # Test encoded token plus
+    encoded_plus = urllib.parse.quote_plus("secret_token")
+    assert meta_client._sanitize_string(f"my encoded plus token is {encoded_plus}") == "my encoded plus token is ***"
+
 
 @pytest.mark.asyncio
 async def test_aclose_owns_client():
