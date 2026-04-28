@@ -117,12 +117,12 @@ async def get_logs():
 async def logs_ui():
     return FileResponse("app/static/logs_ui.html")
 
-@app.get("/posts", response_model=PostListResponse, summary="Get account posts")
+@app.get("/posts", response_model=PostListResponse, summary="Get account posts", dependencies=[Depends(get_api_key)])
 async def get_posts(limit: int = Query(10, description="Number of posts to retrieve")):
     data = await social_media_service.get_posts(limit=limit)
     return data
 
-@app.get("/{object_id}/likes", response_model=LikeListResponse, summary="Get likes for a post or comment")
+@app.get("/{object_id}/likes", response_model=LikeListResponse, summary="Get likes for a post or comment", dependencies=[Depends(get_api_key)])
 async def get_likes(
     object_id: str = Path(..., description="The ID of the post or comment"),
     limit: int = Query(10, description="Number of likes to retrieve")
@@ -175,7 +175,7 @@ async def handle_webhook(
 
     return {"status": "success"}
 
-@app.get("/posts/{post_id}/comments", response_model=CommentListResponse, summary="Get comments for a post")
+@app.get("/posts/{post_id}/comments", response_model=CommentListResponse, summary="Get comments for a post", dependencies=[Depends(get_api_key)])
 async def get_comments(
     post_id: str = Path(..., description="The ID of the post"),
     limit: int = Query(10, description="Number of comments to retrieve")
@@ -183,7 +183,7 @@ async def get_comments(
     data = await social_media_service.get_comments(post_id, limit=limit)
     return data
 
-@app.post("/posts/{post_id}/comments", response_model=CommentResponse, summary="Post a comment on a post")
+@app.post("/posts/{post_id}/comments", response_model=CommentResponse, summary="Post a comment on a post", dependencies=[Depends(get_api_key)])
 async def create_comment(
     comment: CommentRequest,
     post_id: str = Path(..., description="The ID of the post to comment on")
@@ -191,7 +191,7 @@ async def create_comment(
     data = await social_media_service.post_comment(post_id, message=comment.message)
     return data
 
-@app.post("/comments/{comment_id}/like", response_model=LikeResponse, summary="Like a comment")
+@app.post("/comments/{comment_id}/like", response_model=LikeResponse, summary="Like a comment", dependencies=[Depends(get_api_key)])
 async def like_comment(
     comment_id: str = Path(..., description="The ID of the comment to like")
 ):
