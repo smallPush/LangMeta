@@ -51,15 +51,13 @@ async def test_fetch_and_process_exception(mock_print, mock_get_posts):
 @pytest.mark.asyncio
 @patch("builtins.print")
 async def test_process_comment_success(mock_print):
-    mock_service = AsyncMock()
-
     comment = {
         "id": "comment_123",
         "likes": {
             "data": [{"id": "like_1"}, {"id": "like_2"}]
         }
     }
-    await process_comment(mock_service, comment)
+    await process_comment(comment)
 
     mock_print.assert_any_call("  Processing comment: comment_123")
     mock_print.assert_any_call("    Comment comment_123 has 2 likes.")
@@ -67,10 +65,8 @@ async def test_process_comment_success(mock_print):
 @pytest.mark.asyncio
 @patch("builtins.print")
 async def test_process_comment_no_likes(mock_print):
-    mock_service = AsyncMock()
-
     comment = {"id": "comment_456"}
-    await process_comment(mock_service, comment)
+    await process_comment(comment)
 
     mock_print.assert_any_call("  Processing comment: comment_456")
     mock_print.assert_any_call("    Comment comment_456 has 0 likes.")

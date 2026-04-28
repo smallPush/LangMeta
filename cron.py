@@ -3,7 +3,7 @@ import httpx
 from app.adapters.meta_api import MetaGraphAPIClient
 from app.services.social_media_service import SocialMediaService
 
-async def process_comment(service, comment):
+async def process_comment(comment):
     comment_id = comment.get("id")
     print(f"  Processing comment: {comment_id}")
     comment_likes_response = comment.get("likes", {})
@@ -32,7 +32,7 @@ async def fetch_and_process():
             comments = post.get("comments", {}).get("data", [])
 
             # Fetch likes for all comments concurrently
-            await asyncio.gather(*(process_comment(service, comment) for comment in comments))
+            await asyncio.gather(*(process_comment(comment) for comment in comments))
 
         await asyncio.gather(*(process_post(post) for post in posts))
 
