@@ -13,13 +13,13 @@ class MetaGraphAPIClient(SocialMediaPort):
         self.account_id = settings.meta_account_id
         self._owns_client = client is None
         self.client = client or httpx.AsyncClient()
+        self._encoded_token = urllib.parse.quote(self.access_token)
+        self._encoded_token_plus = urllib.parse.quote_plus(self.access_token)
 
     def _sanitize_string(self, text: str) -> str:
         if not text:
             return text
-        encoded_token = urllib.parse.quote(self.access_token)
-        encoded_token_plus = urllib.parse.quote_plus(self.access_token)
-        return text.replace(self.access_token, "***").replace(encoded_token, "***").replace(encoded_token_plus, "***")
+        return text.replace(self.access_token, "***").replace(self._encoded_token, "***").replace(self._encoded_token_plus, "***")
 
     async def aclose(self):
         """Close the underlying HTTP client."""

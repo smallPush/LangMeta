@@ -82,6 +82,8 @@ async def test_get_posts(meta_client):
 async def test_sanitize_string_edge_cases(meta_client):
     import urllib.parse
     meta_client.access_token = "secret_token"
+    meta_client._encoded_token = urllib.parse.quote(meta_client.access_token)
+    meta_client._encoded_token_plus = urllib.parse.quote_plus(meta_client.access_token)
 
     # Test empty string
     assert meta_client._sanitize_string("") == ""
