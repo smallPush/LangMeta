@@ -3,6 +3,24 @@ import httpx
 from unittest.mock import patch, AsyncMock
 
 @pytest.mark.asyncio
+async def test_request_missing_params(meta_client):
+    endpoint = "test_endpoint"
+    mock_response = AsyncMock()
+    mock_response.json = lambda: {"data": "test"}
+    mock_response.raise_for_status = lambda: None
+
+    with patch.object(meta_client.client, "send", new_callable=AsyncMock) as mock_send:
+        mock_send.return_value = mock_response
+        result = await meta_client._request("GET", endpoint, params=None)
+
+        assert mock_send.call_count == 1
+        request = mock_send.call_args[0][0]
+        assert "access_token" in request.url.params
+        assert request.url.params["access_token"] == meta_client.access_token
+        assert result == {"data": "test"}
+
+
+@pytest.mark.asyncio
 async def test_get_success(meta_client):
     endpoint = "test_endpoint"
     params = {"test_param": "test_value"}
