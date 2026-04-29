@@ -132,7 +132,7 @@ def test_get_posts(mock_get_posts):
             "next": "https://graph.facebook.com/v19.0/123456789/posts?limit=2&after=QVFIU..."
         }
     }
-    response = client.get("/posts")
+    response = client.get("/posts", headers={"X-API-Key": "secure_key"})
     assert response.status_code == 200
     assert response.json() == {
         "data": [
@@ -157,7 +157,7 @@ def test_get_posts_http_error(mock_get_posts):
     mock_response = httpx.Response(404, request=mock_request)
     mock_get_posts.side_effect = httpx.HTTPStatusError("Not Found", request=mock_request, response=mock_response)
 
-    response = client.get("/posts")
+    response = client.get("/posts", headers={"X-API-Key": "secure_key"})
     assert response.status_code == 404
     assert response.json() == {"detail": "Meta API request failed"}
 
@@ -168,7 +168,7 @@ def test_get_posts_http_error_with_json(mock_get_posts):
     mock_response = httpx.Response(401, request=mock_request, json=json_error_payload)
     mock_get_posts.side_effect = httpx.HTTPStatusError("Unauthorized", request=mock_request, response=mock_response)
 
-    response = client.get("/posts")
+    response = client.get("/posts", headers={"X-API-Key": "secure_key"})
     assert response.status_code == 401
     assert response.json() == {"detail": json_error_payload}
 
@@ -176,14 +176,14 @@ def test_get_posts_http_error_with_json(mock_get_posts):
 def test_get_posts_internal_error(mock_get_posts):
     mock_get_posts.side_effect = Exception("Internal error")
 
-    response = client.get("/posts")
+    response = client.get("/posts", headers={"X-API-Key": "secure_key"})
     assert response.status_code == 500
     assert response.json() == {"detail": "Internal server error"}
 
 @patch("app.adapters.meta_api.MetaGraphAPIClient.get_likes", new_callable=AsyncMock)
 def test_get_likes(mock_get_likes):
     mock_get_likes.return_value = {"data": [{"id": "123", "name": "Test User"}]}
-    response = client.get("/test_object_id/likes")
+    response = client.get("/test_object_id/likes", headers={"X-API-Key": "secure_key"})
     assert response.status_code == 200
     assert response.json() == {"data": [{"id": "123", "name": "Test User"}], "paging": None}
 
@@ -193,7 +193,7 @@ def test_get_likes_http_error(mock_get_likes):
     mock_response = httpx.Response(404, request=mock_request)
     mock_get_likes.side_effect = httpx.HTTPStatusError("Not Found", request=mock_request, response=mock_response)
 
-    response = client.get("/test_object_id/likes")
+    response = client.get("/test_object_id/likes", headers={"X-API-Key": "secure_key"})
     assert response.status_code == 404
     assert response.json() == {"detail": "Meta API request failed"}
 
@@ -204,7 +204,7 @@ def test_get_likes_http_error_with_json(mock_get_likes):
     mock_response = httpx.Response(401, request=mock_request, json=json_error_payload)
     mock_get_likes.side_effect = httpx.HTTPStatusError("Unauthorized", request=mock_request, response=mock_response)
 
-    response = client.get("/test_object_id/likes")
+    response = client.get("/test_object_id/likes", headers={"X-API-Key": "secure_key"})
     assert response.status_code == 401
     assert response.json() == {"detail": json_error_payload}
 
@@ -212,7 +212,7 @@ def test_get_likes_http_error_with_json(mock_get_likes):
 def test_get_likes_internal_error(mock_get_likes):
     mock_get_likes.side_effect = Exception("Internal error")
 
-    response = client.get("/test_object_id/likes")
+    response = client.get("/test_object_id/likes", headers={"X-API-Key": "secure_key"})
     assert response.status_code == 500
     assert response.json() == {"detail": "Internal server error"}
 
@@ -222,7 +222,7 @@ def test_get_comments(mock_get_comments):
     mock_get_comments.return_value = {
         "data": [{"id": "1", "message": "Test comment", "created_time": "2024-01-01T00:00:00+0000"}]
     }
-    response = client.get("/posts/test_post_id/comments")
+    response = client.get("/posts/test_post_id/comments", headers={"X-API-Key": "secure_key"})
     assert response.status_code == 200
     assert response.json() == {
         "data": [{"id": "1", "message": "Test comment", "created_time": "2024-01-01T00:00:00+0000"}],
@@ -235,7 +235,7 @@ def test_get_comments_http_error(mock_get_comments):
     mock_response = httpx.Response(404, request=mock_request)
     mock_get_comments.side_effect = httpx.HTTPStatusError("Not Found", request=mock_request, response=mock_response)
 
-    response = client.get("/posts/test_post_id/comments")
+    response = client.get("/posts/test_post_id/comments", headers={"X-API-Key": "secure_key"})
     assert response.status_code == 404
     assert response.json() == {"detail": "Meta API request failed"}
 
@@ -246,7 +246,7 @@ def test_get_comments_http_error_with_json(mock_get_comments):
     mock_response = httpx.Response(401, request=mock_request, json=json_error_payload)
     mock_get_comments.side_effect = httpx.HTTPStatusError("Unauthorized", request=mock_request, response=mock_response)
 
-    response = client.get("/posts/test_post_id/comments")
+    response = client.get("/posts/test_post_id/comments", headers={"X-API-Key": "secure_key"})
     assert response.status_code == 401
     assert response.json() == {"detail": json_error_payload}
 
@@ -254,7 +254,7 @@ def test_get_comments_http_error_with_json(mock_get_comments):
 def test_get_comments_internal_error(mock_get_comments):
     mock_get_comments.side_effect = Exception("Internal error")
 
-    response = client.get("/posts/test_post_id/comments")
+    response = client.get("/posts/test_post_id/comments", headers={"X-API-Key": "secure_key"})
     assert response.status_code == 500
     assert response.json() == {"detail": "Internal server error"}
 
@@ -382,7 +382,7 @@ def test_generic_exception_handler_integration_starlette():
 @patch("app.main.social_media_service.like_object", new_callable=AsyncMock)
 def test_like_comment_success(mock_like_object):
     mock_like_object.return_value = {"success": True}
-    response = client.post("/comments/test_comment_id/like")
+    response = client.post("/comments/test_comment_id/like", headers={"X-API-Key": "secure_key"})
     assert response.status_code == 200
     assert response.json() == {"success": True}
 
@@ -390,14 +390,14 @@ def test_like_comment_success(mock_like_object):
 def test_like_comment_internal_error(mock_like_object):
     mock_like_object.side_effect = Exception("Internal error")
 
-    response = client.post("/comments/test_comment_id/like")
+    response = client.post("/comments/test_comment_id/like", headers={"X-API-Key": "secure_key"})
     assert response.status_code == 500
     assert response.json() == {"detail": "Internal server error"}
 
 @patch("app.main.social_media_service.post_comment", new_callable=AsyncMock)
 def test_create_comment_success(mock_post_comment):
     mock_post_comment.return_value = {"id": "123_456"}
-    response = client.post("/posts/test_post_id/comments", json={"message": "Test comment"})
+    response = client.post("/posts/test_post_id/comments", headers={"X-API-Key": "secure_key"}, json={"message": "Test comment"})
     assert response.status_code == 200
     assert response.json() == {"id": "123_456"}
     mock_post_comment.assert_called_once_with("test_post_id", message="Test comment")
@@ -406,11 +406,11 @@ def test_create_comment_success(mock_post_comment):
 def test_create_comment_internal_error(mock_post_comment):
     mock_post_comment.side_effect = Exception("Internal error")
 
-    response = client.post("/posts/test_post_id/comments", json={"message": "Test comment"})
+    response = client.post("/posts/test_post_id/comments", headers={"X-API-Key": "secure_key"}, json={"message": "Test comment"})
     assert response.status_code == 500
     assert response.json() == {"detail": "Internal server error"}
 
 def test_create_comment_validation_error():
     # Missing required 'message' field
-    response = client.post("/posts/test_post_id/comments", json={"invalid_field": "Test comment"})
+    response = client.post("/posts/test_post_id/comments", headers={"X-API-Key": "secure_key"}, json={"invalid_field": "Test comment"})
     assert response.status_code == 422
