@@ -21,18 +21,25 @@ async def fetch_and_process():
         posts_response = await service.get_posts(limit=5)
         posts = posts_response.get("data", [])
 
+        semaphore = asyncio.Semaphore(10)
+
+        async def bounded_process_comment(comment):
+            async with semaphore:
+                await process_comment(comment)
+
         # Process all posts concurrently
         async def process_post(post):
-            post_id = post.get("id")
-            print(f"Processing post: {post_id}")
+            async with semaphore:
+                post_id = post.get("id")
+                print(f"Processing post: {post_id}")
 
-            post_likes = post.get("likes", {}).get("data", [])
-            print(f"  Post {post_id} has {len(post_likes)} likes.")
+                post_likes = post.get("likes", {}).get("data", [])
+                print(f"  Post {post_id} has {len(post_likes)} likes.")
 
-            comments = post.get("comments", {}).get("data", [])
+                comments = post.get("comments", {}).get("data", [])
 
             # Fetch likes for all comments concurrently
-            await asyncio.gather(*(process_comment(comment) for comment in comments))
+            await asyncio.gather(*(bounded_process_comment(comment) for comment in comments))
 
         await asyncio.gather(*(process_post(post) for post in posts))
 
