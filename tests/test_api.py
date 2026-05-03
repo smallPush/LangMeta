@@ -97,19 +97,34 @@ def test_webhook_post_invalid_signature():
     assert response.json() == {"detail": "Invalid signature"}
 
 def test_webhook_post_invalid_json_format():
+    # Since parsing happens AFTER signature validation, we must provide a valid signature
+    import hmac
+    import hashlib
+    from app.config import settings
+    body_content = b"{invalid_json:"
+    signature = hmac.new(settings.meta_app_secret.encode("utf-8"), body_content, hashlib.sha256).hexdigest()
     response = client.post(
         "/webhook",
-        content="{invalid_json:",
-        headers={"Content-Type": "application/json"}
+        content=body_content,
+        headers={"Content-Type": "application/json", "x-hub-signature-256": f"sha256={signature}"}
     )
     assert response.status_code == 422
     assert "detail" in response.json()
 
 def test_webhook_post_missing_fields():
+    # Since parsing happens AFTER signature validation, we must provide a valid signature
+    import hmac
+    import hashlib
+    import json
+    from app.config import settings
     payload = {"invalid": "payload"}
+    # By using content=..., we can precisely control the body content to match the signature.
+    body_content = json.dumps(payload).encode("utf-8")
+    signature = hmac.new(settings.meta_app_secret.encode("utf-8"), body_content, hashlib.sha256).hexdigest()
     response = client.post(
         "/webhook",
-        json=payload
+        content=body_content,
+        headers={"Content-Type": "application/json", "x-hub-signature-256": f"sha256={signature}"}
     )
     assert response.status_code == 422
     assert "detail" in response.json()

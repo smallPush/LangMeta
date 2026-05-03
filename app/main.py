@@ -1,9 +1,12 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Path, Query, Request, Header, Depends, Security
+from fastapi.exceptions import RequestValidationError
 from fastapi.security import APIKeyHeader, APIKeyQuery
 import httpx
 import hmac
 import hashlib
+import json
+from pydantic import ValidationError
 from typing import Optional
 from app.domain.models import (
     CommentRequest,
@@ -144,7 +147,6 @@ async def verify_webhook(
 @app.post("/webhook", summary="Webhook notification endpoint")
 async def handle_webhook(
     request: Request,
-    payload: WebhookPayload,
     x_hub_signature_256: Optional[str] = Header(None)
 ):
     if not x_hub_signature_256:
@@ -169,6 +171,23 @@ async def handle_webhook(
     # Compare signatures
     if not hmac.compare_digest(expected_signature, signature):
         raise HTTPException(status_code=401, detail="Invalid signature")
+
+    # Parse and validate the payload manually to prevent parsing on unauthenticated requests
+    try:
+        body_json = json.loads(body)
+    except json.JSONDecodeError as e:
+        # Create a basic missing error similar to FastAPI's default for invalid JSON
+        errors = [{"type": "json_invalid", "loc": ("body", e.pos), "msg": "JSON decode error", "input": {}, "ctx": {"error": str(e)}}]
+        raise RequestValidationError(errors=errors, body=body.decode("utf-8", errors="ignore"))
+
+    try:
+        payload = WebhookPayload.model_validate(body_json)
+    except ValidationError as e:
+        # Pydantic validation error; pass it to RequestValidationError to format properly
+        errors = e.errors()
+        for error in errors:
+            error["loc"] = ("body",) + error["loc"]
+        raise RequestValidationError(errors=errors, body=body_json)
 
     # Log or process the incoming webhook notifications
     api_logger.log_webhook_event("POST", "/webhook", 200, "payload", payload.model_dump())
