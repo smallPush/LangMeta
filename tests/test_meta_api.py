@@ -1,4 +1,5 @@
 import pytest
+import urllib.parse
 import httpx
 from unittest.mock import patch, AsyncMock
 
@@ -86,7 +87,7 @@ async def test_post_failure(meta_client):
 @pytest.mark.asyncio
 async def test_get_posts(meta_client):
     limit = 5
-    expected_endpoint = f"{meta_client.account_id}/posts"
+    expected_endpoint = f"{urllib.parse.quote(meta_client.account_id, safe='')}/posts"
     expected_params = {"limit": limit, "fields": "id,message,created_time,comments.limit(5){id,message,created_time,likes.limit(5)},likes.limit(5)"}
 
     with patch.object(meta_client, '_get', new_callable=AsyncMock) as mock_get:
@@ -98,7 +99,6 @@ async def test_get_posts(meta_client):
 
 @pytest.mark.asyncio
 async def test_sanitize_string_edge_cases(meta_client):
-    import urllib.parse
     meta_client.access_token = "secret_token"
     meta_client._encoded_token = urllib.parse.quote(meta_client.access_token)
     meta_client._encoded_token_plus = urllib.parse.quote_plus(meta_client.access_token)
@@ -140,7 +140,6 @@ async def test_aclose_does_not_own_client():
 @pytest.mark.asyncio
 async def test_api_logger_sanitization_on_error(meta_client):
     from app.services.logger_service import api_logger
-    import urllib.parse
     api_logger.clear_logs()
 
     endpoint = "test_error_sanitization"
@@ -193,7 +192,7 @@ async def test_api_logger_sanitization_on_success(meta_client):
 async def test_get_comments(meta_client):
     post_id = "test_post_id"
     limit = 5
-    expected_endpoint = f"{post_id}/comments"
+    expected_endpoint = f"{urllib.parse.quote(post_id, safe='')}/comments"
     expected_params = {"limit": limit, "fields": "id,message,created_time,likes.limit(5)"}
 
     with patch.object(meta_client, '_get', new_callable=AsyncMock) as mock_get:
@@ -207,7 +206,7 @@ async def test_get_comments(meta_client):
 async def test_post_comment(meta_client):
     object_id = "test_object_id"
     message = "test message"
-    expected_endpoint = f"{object_id}/comments"
+    expected_endpoint = f"{urllib.parse.quote(object_id, safe='')}/comments"
     expected_data = {"message": message}
 
     with patch.object(meta_client, '_post', new_callable=AsyncMock) as mock_post:
@@ -220,7 +219,7 @@ async def test_post_comment(meta_client):
 @pytest.mark.asyncio
 async def test_like_object(meta_client):
     object_id = "test_object_id"
-    expected_endpoint = f"{object_id}/likes"
+    expected_endpoint = f"{urllib.parse.quote(object_id, safe='')}/likes"
 
     with patch.object(meta_client, '_post', new_callable=AsyncMock) as mock_post:
         mock_post.return_value = {"success": True}
@@ -233,7 +232,7 @@ async def test_like_object(meta_client):
 async def test_get_likes(meta_client):
     object_id = "test_object_id"
     limit = 20
-    expected_endpoint = f"{object_id}/likes"
+    expected_endpoint = f"{urllib.parse.quote(object_id, safe='')}/likes"
     expected_params = {"limit": limit}
 
     with patch.object(meta_client, '_get', new_callable=AsyncMock) as mock_get:
@@ -242,3 +241,32 @@ async def test_get_likes(meta_client):
 
         mock_get.assert_called_once_with(expected_endpoint, expected_params)
         assert result == {"data": []}
+
+@pytest.mark.asyncio
+async def test_request_path_traversal_prevention(meta_client):
+    # Test that path traversal sequences are blocked
+    with pytest.raises(ValueError, match="Invalid endpoint: path traversal detected."):
+        await meta_client._request("GET", "../me/likes")
+
+    with pytest.raises(ValueError, match="Invalid endpoint: path traversal detected."):
+        await meta_client._request("GET", "/me/likes")
+
+    with pytest.raises(ValueError, match="Invalid endpoint: path traversal detected."):
+        await meta_client._request("GET", "123/../../me")
+
+@pytest.mark.asyncio
+async def test_id_quoting(meta_client):
+
+    # Test get_comments with an ID that would otherwise traverse paths
+    malicious_id = "123/../me"
+    expected_endpoint = f"{urllib.parse.quote(malicious_id, safe='')}/comments"
+
+    with patch.object(meta_client, '_get', new_callable=AsyncMock) as mock_get:
+        mock_get.return_value = {"data": []}
+        await meta_client.get_comments(malicious_id)
+
+        # Verify the ID was quoted before being used as the endpoint
+        mock_get.assert_called_once()
+        actual_endpoint = mock_get.call_args[0][0]
+        assert actual_endpoint == expected_endpoint
+        assert "%2F..%2F" in actual_endpoint # the dots are still there, but properly escaped as part of the ID
