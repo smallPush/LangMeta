@@ -29,6 +29,8 @@ class MetaGraphAPIClient(SocialMediaPort):
     async def _request(
         self, method: str, endpoint: str, params: Optional[Dict[str, Any]] = None, data: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
+        if ".." in endpoint or endpoint.startswith("/"):
+            raise ValueError("Invalid endpoint: path traversal detected.")
         url = f"{self.base_url}/{endpoint}"
         if not params:
             params = {}
@@ -69,29 +71,29 @@ class MetaGraphAPIClient(SocialMediaPort):
 
     async def get_posts(self, limit: int = 10) -> Dict[str, Any]:
         """Fetch posts from the configured account."""
-        endpoint = f"{self.account_id}/posts"
+        endpoint = f"{urllib.parse.quote(self.account_id, safe='')}/posts"
         params = {"limit": limit, "fields": "id,message,created_time,comments.limit(5){id,message,created_time,likes.limit(5)},likes.limit(5)"}
         return await self._get(endpoint, params)
 
     async def get_comments(self, post_id: str, limit: int = 10) -> Dict[str, Any]:
         """Fetch comments for a specific post."""
-        endpoint = f"{post_id}/comments"
+        endpoint = f"{urllib.parse.quote(post_id, safe='')}/comments"
         params = {"limit": limit, "fields": "id,message,created_time,likes.limit(5)"}
         return await self._get(endpoint, params)
 
     async def post_comment(self, object_id: str, message: str) -> Dict[str, Any]:
         """Post a comment on a specific object (post or comment)."""
-        endpoint = f"{object_id}/comments"
+        endpoint = f"{urllib.parse.quote(object_id, safe='')}/comments"
         data = {"message": message}
         return await self._post(endpoint, data=data)
 
     async def like_object(self, object_id: str) -> Dict[str, Any]:
         """Like a specific object (post or comment)."""
-        endpoint = f"{object_id}/likes"
+        endpoint = f"{urllib.parse.quote(object_id, safe='')}/likes"
         return await self._post(endpoint)
 
     async def get_likes(self, object_id: str, limit: int = 10) -> Dict[str, Any]:
         """Fetch likes for a specific object (post or comment)."""
-        endpoint = f"{object_id}/likes"
+        endpoint = f"{urllib.parse.quote(object_id, safe='')}/likes"
         params = {"limit": limit}
         return await self._get(endpoint, params)
