@@ -13,38 +13,37 @@ async def process_comment(comment):
 async def fetch_and_process():
     print("Running cron job to fetch posts, comments, and likes...")
     try:
-        http_client = httpx.AsyncClient()
-        client = MetaGraphAPIClient(client=http_client)
-        service = SocialMediaService(client)
-        
-        # Fetch posts
-        posts_response = await service.get_posts(limit=5)
-        posts = posts_response.get("data", [])
+        async with httpx.AsyncClient() as http_client:
+            client = MetaGraphAPIClient(client=http_client)
+            service = SocialMediaService(client)
 
-        semaphore = asyncio.Semaphore(10)
+            # Fetch posts
+            posts_response = await service.get_posts(limit=5)
+            posts = posts_response.get("data", [])
 
-        async def bounded_process_comment(comment):
-            async with semaphore:
-                await process_comment(comment)
+            semaphore = asyncio.Semaphore(10)
 
-        # Process all posts concurrently
-        async def process_post(post):
-            async with semaphore:
-                post_id = post.get("id")
-                print(f"Processing post: {post_id}")
+            async def bounded_process_comment(comment):
+                async with semaphore:
+                    await process_comment(comment)
 
-                post_likes = post.get("likes", {}).get("data", [])
-                print(f"  Post {post_id} has {len(post_likes)} likes.")
+            # Process all posts concurrently
+            async def process_post(post):
+                async with semaphore:
+                    post_id = post.get("id")
+                    print(f"Processing post: {post_id}")
 
-                comments = post.get("comments", {}).get("data", [])
+                    post_likes = post.get("likes", {}).get("data", [])
+                    print(f"  Post {post_id} has {len(post_likes)} likes.")
 
-            # Fetch likes for all comments concurrently
-            await asyncio.gather(*(bounded_process_comment(comment) for comment in comments))
+                    comments = post.get("comments", {}).get("data", [])
 
-        await asyncio.gather(*(process_post(post) for post in posts))
+                # Fetch likes for all comments concurrently
+                await asyncio.gather(*(bounded_process_comment(comment) for comment in comments))
 
-        await client.aclose()
-        await http_client.aclose()
+            await asyncio.gather(*(process_post(post) for post in posts))
+
+            await client.aclose()
     except Exception as e:
         print(f"An error occurred during cron execution: {e}")
 
