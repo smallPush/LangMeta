@@ -62,10 +62,10 @@ app = FastAPI(
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    start_time = time.time()
+    start_time = time.perf_counter()
     try:
         response = await call_next(request)
-        process_time_ms = (time.time() - start_time) * 1000
+        process_time_ms = (time.perf_counter() - start_time) * 1000
         api_logger.log_call(
             call_type="incoming",
             method=request.method,
@@ -75,7 +75,7 @@ async def log_requests(request: Request, call_next):
         )
         return response
     except Exception as exc:
-        process_time_ms = (time.time() - start_time) * 1000
+        process_time_ms = (time.perf_counter() - start_time) * 1000
         api_logger.log_call(
             call_type="incoming",
             method=request.method,
