@@ -41,7 +41,7 @@ def test_logger_get_logs_endpoint():
 
 def test_logger_ui_endpoint():
     api_logger.clear_logs()
-    response = client.get(f"/logs/ui?api_key={settings.api_key}")
+    response = client.get("/logs/ui", headers={"X-API-Key": settings.api_key})
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
     assert "API Call Logs" in response.text

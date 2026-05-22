@@ -37,8 +37,7 @@
     <script>
         async function fetchLogs() {
             try {
-                const urlParams = new URLSearchParams(window.location.search);
-                const apiKey = urlParams.get('api_key');
+                const apiKey = prompt("Please enter your API Key to view logs:");
                 const headers = {};
                 if (apiKey) {
                     headers['X-API-Key'] = apiKey;

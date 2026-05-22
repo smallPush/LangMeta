@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Path, Query, Request, Header, Depends, Security
 from fastapi.exceptions import RequestValidationError
-from fastapi.security import APIKeyHeader, APIKeyQuery
+from fastapi.security import APIKeyHeader
 import httpx
 import hmac
 import hashlib
@@ -30,16 +30,12 @@ meta_client = MetaGraphAPIClient(client=http_client)
 social_media_service = SocialMediaService(meta_client)
 
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
-api_key_query = APIKeyQuery(name="api_key", auto_error=False)
 
 async def get_api_key(
     api_key_header: str = Security(api_key_header),
-    api_key_query: str = Security(api_key_query),
 ):
     if api_key_header is not None and hmac.compare_digest(api_key_header, settings.api_key):
         return api_key_header
-    if api_key_query is not None and hmac.compare_digest(api_key_query, settings.api_key):
-        return api_key_query
     raise HTTPException(
         status_code=403,
         detail="Could not validate API Key",
