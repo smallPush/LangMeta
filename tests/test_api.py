@@ -429,3 +429,13 @@ def test_create_comment_validation_error():
     # Missing required 'message' field
     response = client.post("/posts/test_post_id/comments", headers={"X-API-Key": "secure_key"}, json={"invalid_field": "Test comment"})
     assert response.status_code == 422
+
+@pytest.mark.asyncio
+@patch("app.main.social_media_service.aclose", new_callable=AsyncMock)
+@patch("app.main.http_client.aclose", new_callable=AsyncMock)
+async def test_lifespan(mock_http_client_aclose, mock_social_media_service_aclose):
+    from app.main import lifespan, app
+    async with lifespan(app):
+        pass
+    mock_social_media_service_aclose.assert_called_once()
+    mock_http_client_aclose.assert_called_once()
