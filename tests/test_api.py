@@ -109,7 +109,13 @@ def test_webhook_post_invalid_json_format():
         headers={"Content-Type": "application/json", "x-hub-signature-256": f"sha256={signature}"}
     )
     assert response.status_code == 422
-    assert "detail" in response.json()
+    json_response = response.json()
+    assert "detail" in json_response
+    assert len(json_response["detail"]) > 0
+    assert json_response["detail"][0]["type"] == "json_invalid"
+    assert json_response["detail"][0]["msg"] == "JSON decode error"
+    assert "ctx" in json_response["detail"][0]
+    assert "error" in json_response["detail"][0]["ctx"]
 
 def test_webhook_post_missing_fields():
     # Since parsing happens AFTER signature validation, we must provide a valid signature
