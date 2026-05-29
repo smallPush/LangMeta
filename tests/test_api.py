@@ -22,6 +22,24 @@ def test_webhook_get_success():
     assert response.status_code == 200
     assert response.text == "1158201444"
 
+
+@patch("app.main.api_logger.log_webhook_event")
+def test_webhook_get_success_logs_event(mock_log):
+    response = client.get("/webhook?hub.mode=subscribe&hub.challenge=1158201444&hub.verify_token=your_webhook_verify_token_here")
+    assert response.status_code == 200
+    assert response.text == "1158201444"
+    mock_log.assert_called_once_with("GET", "/webhook", 200, "verification")
+
+def test_webhook_get_missing_challenge():
+    response = client.get("/webhook?hub.mode=subscribe&hub.verify_token=your_webhook_verify_token_here")
+    assert response.status_code == 200
+    assert response.text == ""
+
+def test_webhook_get_missing_all():
+    response = client.get("/webhook")
+    assert response.status_code == 403
+    assert response.json() == {"detail": "Verification failed"}
+
 def test_webhook_get_failure():
     response = client.get("/webhook?hub.mode=subscribe&hub.challenge=1158201444&hub.verify_token=wrong_token")
     assert response.status_code == 403
