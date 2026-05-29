@@ -81,10 +81,25 @@ def test_webhook_post():
     assert response.json() == {"status": "success"}
 
 def test_webhook_post_missing_signature():
+    """
+    Test missing signature error path in handle_webhook.
+    Sends a POST request to /webhook without the X-Hub-Signature-256 header
+    and asserts a 401 response with 'Missing signature' detail.
+    """
     payload = {"object": "instagram", "entry": []}
     response = client.post("/webhook", json=payload)
     assert response.status_code == 401
     assert response.json() == {"detail": "Missing signature"}
+
+def test_webhook_post_invalid_signature_format():
+    payload = {"object": "instagram", "entry": []}
+    response = client.post(
+        "/webhook",
+        json=payload,
+        headers={"X-Hub-Signature-256": "invalid_format"}
+    )
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Invalid signature format"}
 
 def test_webhook_post_invalid_signature():
     payload = {"object": "instagram", "entry": []}
