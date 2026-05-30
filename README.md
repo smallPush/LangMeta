@@ -30,6 +30,17 @@ The repository follows a Ports and Adapters (hexagonal) architecture style, stru
    ```
 4. Fill out the variables in `.env` with your Meta API credentials.
 
+To generate the local API key used by protected endpoints, run:
+```bash
+openssl rand -hex 32
+```
+Then set the generated value in `.env`:
+```env
+API_KEY=your_generated_key_here
+```
+
+For a detailed walkthrough of all required keys, see [`API_KEYS_GUIDE.md`](API_KEYS_GUIDE.md). An English version is available at [`API_KEYS_GUIDE_EN.md`](API_KEYS_GUIDE_EN.md).
+
 ### Configuration
 Update the `.env` file with your specific Meta app configuration:
 - `META_ACCESS_TOKEN`: The user or page access token.
@@ -37,6 +48,7 @@ Update the `.env` file with your specific Meta app configuration:
 - `META_API_VERSION`: Graph API version (default is `v19.0`).
 - `META_WEBHOOK_VERIFY_TOKEN`: A custom token used to verify the webhook setup (only needed if using webhooks).
 - `META_APP_SECRET`: Your Meta App Secret, used to verify the payload signature of incoming webhooks.
+- `API_KEY`: A local secret used to protect application endpoints. Send it in the `X-API-Key` header when calling protected routes.
 
 ## Running the Application
 
