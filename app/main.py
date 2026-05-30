@@ -186,7 +186,7 @@ async def handle_webhook(
         raise RequestValidationError(errors=errors, body=body_json)
 
     # Log or process the incoming webhook notifications
-    api_logger.log_webhook_event("POST", "/webhook", 200, "payload", payload.model_dump())
+    api_logger.log_webhook_event("POST", "/webhook", 200, "payload", body_json)
 
     return {"status": "success"}
 
