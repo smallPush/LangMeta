@@ -10,8 +10,7 @@ class APILogger:
         self.lock = threading.Lock()
 
     def _add_log(self, log_entry: Dict[str, Any]):
-        with self.lock:
-            self.logs.append(log_entry)
+        self.logs.append(log_entry)
 
     def log_call(self, call_type: str, method: str, url: str, status_code: int, response_time_ms: float, error: str = None):
         """
