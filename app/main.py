@@ -140,11 +140,7 @@ async def verify_webhook(
         return PlainTextResponse(content=hub_challenge, status_code=200)
     raise HTTPException(status_code=403, detail="Verification failed")
 
-@app.post("/webhook", summary="Webhook notification endpoint")
-async def handle_webhook(
-    request: Request,
-    x_hub_signature_256: Optional[str] = Header(None)
-):
+def verify_webhook_signature(body: bytes, x_hub_signature_256: Optional[str]) -> None:
     if not x_hub_signature_256:
         raise HTTPException(status_code=401, detail="Missing signature")
 
@@ -153,9 +149,6 @@ async def handle_webhook(
         raise HTTPException(status_code=401, detail="Invalid signature format")
 
     signature = x_hub_signature_256.split("=")[1]
-
-    # Read raw body
-    body = await request.body()
 
     # Calculate HMAC SHA256 signature
     expected_signature = hmac.new(
@@ -168,6 +161,7 @@ async def handle_webhook(
     if not hmac.compare_digest(expected_signature, signature):
         raise HTTPException(status_code=401, detail="Invalid signature")
 
+def parse_webhook_payload(body: bytes) -> WebhookPayload:
     # Parse and validate the payload manually to prevent parsing on unauthenticated requests
     try:
         body_json = json.loads(body)
@@ -184,6 +178,19 @@ async def handle_webhook(
         for error in errors:
             error["loc"] = ("body",) + error["loc"]
         raise RequestValidationError(errors=errors, body=body_json)
+
+    return payload
+
+@app.post("/webhook", summary="Webhook notification endpoint")
+async def handle_webhook(
+    request: Request,
+    x_hub_signature_256: Optional[str] = Header(None)
+):
+    # Read raw body
+    body = await request.body()
+
+    verify_webhook_signature(body, x_hub_signature_256)
+    payload = parse_webhook_payload(body)
 
     # Log or process the incoming webhook notifications
     api_logger.log_webhook_event("POST", "/webhook", 200, "payload", payload.model_dump())
