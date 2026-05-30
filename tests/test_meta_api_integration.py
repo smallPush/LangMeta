@@ -1,15 +1,22 @@
 import pytest
+import pytest_asyncio
 from app.adapters.meta_api import MetaGraphAPIClient
 from app.config import settings
 
 # Skip these tests unless explicitly requested or if we have a real token
 # We check if META_ACCESS_TOKEN and META_ACCOUNT_ID are not the default/placeholder ones
 def is_real_config():
+    placeholders = {
+        "test_access_token", 
+        "test_account_id", 
+        "your_meta_access_token_here", 
+        "your_meta_account_id_here"
+    }
     return (
         settings.meta_access_token 
-        and settings.meta_access_token != "test_access_token"
+        and settings.meta_access_token not in placeholders
         and settings.meta_account_id 
-        and settings.meta_account_id != "test_account_id"
+        and settings.meta_account_id not in placeholders
     )
 
 pytestmark = pytest.mark.skipif(
@@ -17,7 +24,7 @@ pytestmark = pytest.mark.skipif(
     reason="META_ACCESS_TOKEN or META_ACCOUNT_ID not configured for integration tests"
 )
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def real_meta_client():
     client = MetaGraphAPIClient()
     yield client

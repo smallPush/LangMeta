@@ -6,7 +6,7 @@ from fastapi import Request
 from fastapi.testclient import TestClient
 from app.main import app
 from app.config import settings
-settings.api_key = "test_api_key"
+settings.api_key = "secure_key"
 import httpx
 from unittest.mock import patch, AsyncMock, MagicMock
 
@@ -49,6 +49,24 @@ def test_webhook_get_missing_mode():
     response = client.get("/webhook?hub.challenge=1158201444&hub.verify_token=your_webhook_verify_token_here")
     assert response.status_code == 403
     assert response.json() == {"detail": "Verification failed"}
+
+def test_get_logs_unauthorized():
+    response = client.get("/logs")
+    assert response.status_code == 403
+
+def test_get_logs_success():
+    response = client.get("/logs", headers={"X-API-Key": "secure_key"})
+    assert response.status_code == 200
+    assert "logs" in response.json()
+
+def test_logs_ui_unauthorized():
+    response = client.get("/logs/ui")
+    assert response.status_code == 403
+
+def test_logs_ui_success():
+    response = client.get("/logs/ui", headers={"X-API-Key": "secure_key"})
+    assert response.status_code == 200
+    # It's a FileResponse, so we don't check for template attribute
 
 def test_webhook_get_wrong_mode():
     response = client.get("/webhook?hub.mode=unsubscribe&hub.challenge=1158201444&hub.verify_token=your_webhook_verify_token_here")
@@ -421,7 +439,7 @@ async def test_generic_exception_handler_starlette_http_exception():
 def test_generic_exception_handler_integration_standard():
     client_local = TestClient(app, raise_server_exceptions=False)
     with patch("app.main.api_logger.get_logs", side_effect=Exception("Integration error")):
-        response = client_local.get("/logs", headers={"X-API-Key": "test_api_key"})
+        response = client_local.get("/logs", headers={"X-API-Key": "secure_key"})
         assert response.status_code == 500
         assert response.json() == {"detail": "Internal server error"}
 
@@ -429,7 +447,7 @@ def test_generic_exception_handler_integration_starlette():
     client_local = TestClient(app, raise_server_exceptions=False)
     from starlette.exceptions import HTTPException as StarletteHTTPException
     with patch("app.main.api_logger.get_logs", side_effect=StarletteHTTPException(status_code=401, detail="Unauthorized integration")):
-        response = client_local.get("/logs", headers={"X-API-Key": "test_api_key"})
+        response = client_local.get("/logs", headers={"X-API-Key": "secure_key"})
         assert response.status_code == 401
         assert response.json() == {"detail": "Unauthorized integration"}
 

@@ -1,3 +1,4 @@
+import json
 import pytest
 import urllib.parse
 import httpx
@@ -151,8 +152,8 @@ async def test_api_logger_sanitization_on_error(meta_client):
     mock_response = httpx.Response(500, request=mock_request)
     http_error = httpx.HTTPStatusError(error_msg, request=mock_request, response=mock_response)
 
-    with patch.object(meta_client.client, "get", new_callable=AsyncMock) as mock_get:
-        mock_get.side_effect = http_error
+    with patch.object(meta_client.client, "send", new_callable=AsyncMock) as mock_send:
+        mock_send.side_effect = http_error
 
         with pytest.raises(httpx.HTTPStatusError):
             await meta_client._get(endpoint)
@@ -173,13 +174,11 @@ async def test_api_logger_sanitization_on_success(meta_client):
     api_logger.clear_logs()
 
     endpoint = "test_success_sanitization"
-    mock_response = AsyncMock()
-    mock_response.json = lambda: {"data": "test"}
-    mock_response.status_code = 200
-    mock_response.raise_for_status = lambda: None
+    mock_request = httpx.Request("POST", f"{meta_client.base_url}/{endpoint}")
+    mock_response = httpx.Response(200, content=json.dumps({"data": "test"}).encode("utf-8"), request=mock_request)
 
-    with patch.object(meta_client.client, "post", new_callable=AsyncMock) as mock_post:
-        mock_post.return_value = mock_response
+    with patch.object(meta_client.client, "send", new_callable=AsyncMock) as mock_send:
+        mock_send.return_value = mock_response
         await meta_client._post(endpoint, data={})
 
     logs = api_logger.get_logs()

@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 from app.main import app
 from app.config import settings
-settings.api_key = "test_api_key"
+settings.api_key = "secure_key"
 from app.services.logger_service import api_logger
 import pytest
 
