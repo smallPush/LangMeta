@@ -10,6 +10,23 @@ async def process_comment(comment):
     comment_likes = comment_likes_response.get("data", [])
     print(f"    Comment {comment_id} has {len(comment_likes)} likes.")
 
+async def bounded_process_comment(comment, semaphore):
+    async with semaphore:
+        await process_comment(comment)
+
+async def process_post(post, semaphore):
+    async with semaphore:
+        post_id = post.get("id")
+        print(f"Processing post: {post_id}")
+
+        post_likes = post.get("likes", {}).get("data", [])
+        print(f"  Post {post_id} has {len(post_likes)} likes.")
+
+        comments = post.get("comments", {}).get("data", [])
+
+    # Fetch likes for all comments concurrently
+    await asyncio.gather(*(bounded_process_comment(comment, semaphore) for comment in comments))
+
 async def fetch_and_process():
     print("Running cron job to fetch posts, comments, and likes...")
     try:
@@ -23,25 +40,7 @@ async def fetch_and_process():
 
             semaphore = asyncio.Semaphore(10)
 
-            async def bounded_process_comment(comment):
-                async with semaphore:
-                    await process_comment(comment)
-
-            # Process all posts concurrently
-            async def process_post(post):
-                async with semaphore:
-                    post_id = post.get("id")
-                    print(f"Processing post: {post_id}")
-
-                    post_likes = post.get("likes", {}).get("data", [])
-                    print(f"  Post {post_id} has {len(post_likes)} likes.")
-
-                    comments = post.get("comments", {}).get("data", [])
-
-                # Fetch likes for all comments concurrently
-                await asyncio.gather(*(bounded_process_comment(comment) for comment in comments))
-
-            await asyncio.gather(*(process_post(post) for post in posts))
+            await asyncio.gather(*(process_post(post, semaphore) for post in posts))
 
             await client.aclose()
     except Exception as e:
