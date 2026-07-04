@@ -193,7 +193,7 @@ async def handle_webhook(
     payload = parse_webhook_payload(body)
 
     # Log or process the incoming webhook notifications
-    api_logger.log_webhook_event("POST", "/webhook", 200, "payload", body_json)
+    api_logger.log_webhook_event("POST", "/webhook", 200, "payload", payload.model_dump())
 
     return {"status": "success"}
 
