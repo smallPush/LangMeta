@@ -12,6 +12,90 @@ This is a FastAPI project designed to interact with the Meta Graph API for a spe
 ## Architecture
 The repository follows a Ports and Adapters (hexagonal) architecture style, structurally organized into application logic and external adapters (e.g., the Meta Graph API client).
 
+```mermaid
+graph TD
+  repo["LangMeta<br/>FastAPI integration with Meta Graph API"]
+
+  subgraph app["/app - Main application"]
+    main["main.py<br/>FastAPI entrypoint, routes, security, and webhooks"]
+    config["config.py<br/>Loads .env settings with Pydantic Settings"]
+
+    subgraph domain["/app/domain"]
+      models["models.py<br/>Pydantic models for posts, comments, likes, and webhooks"]
+    end
+
+    subgraph ports["/app/ports"]
+      port["social_media.py<br/>Social media contract"]
+    end
+
+    subgraph services["/app/services"]
+      service["social_media_service.py<br/>Use-case layer that delegates to the port"]
+      logger["logger_service.py<br/>In-memory API and webhook logs"]
+    end
+
+    subgraph adapters["/app/adapters"]
+      meta["meta_api.py<br/>HTTPX adapter for Meta Graph API"]
+    end
+
+    subgraph static["/app/static"]
+      logsui["logs_ui.html<br/>Simple protected logs UI"]
+    end
+  end
+
+  subgraph jobs["Jobs and utilities"]
+    cron["cron.py<br/>Async job to fetch posts and process comments"]
+    bench["benchmark.py / benchmark_sanitize.py<br/>Flow and sanitization benchmarks"]
+  end
+
+  subgraph tests["/tests - Verification"]
+    apiTests["test_api.py<br/>FastAPI routes, auth, errors, and webhooks"]
+    metaTests["test_meta_api.py<br/>Meta client behavior with mocks"]
+    integration["test_meta_api_integration.py<br/>Real integration tests, skipped without credentials"]
+    otherTests["Other tests<br/>cron, logger, security, benchmarks, and service"]
+  end
+
+  subgraph mocks["/mocks - Simulated Meta responses"]
+    mockJson["*.json<br/>Expected response shapes: data[] plus optional paging"]
+  end
+
+  subgraph ops["Configuration and execution"]
+    env[".env.example<br/>Meta credentials, API key, and webhook secrets"]
+    req["requirements.txt<br/>Runtime dependencies"]
+    docker["Dockerfile + docker-compose.yml<br/>Containerized app on port 8000"]
+    ci[".github/workflows/pylint.yml<br/>Pylint CI workflow"]
+    agents["AGENTS.md<br/>Compact OpenCode guidance"]
+  end
+
+  repo --> app
+  repo --> jobs
+  repo --> tests
+  repo --> mocks
+  repo --> ops
+
+  main -->|"uses import-time settings"| config
+  main -->|"validates responses"| models
+  main -->|"calls use cases"| service
+  main -->|"records API and webhook activity"| logger
+  main -->|"serves protected UI"| logsui
+
+  service -->|"depends on contract"| port
+  meta -->|"implements"| port
+  service -->|"async delegation"| meta
+  meta -->|"HTTP requests"| external["Meta Graph API<br/>Posts, comments, and likes"]
+
+  cron -->|"reuses adapter and service"| service
+  cron -->|"bounded async processing"| meta
+
+  apiTests -->|"patch objects used by app.main"| main
+  metaTests -->|"use mock responses"| mockJson
+  integration -->|"requires real credentials"| env
+  otherTests --> service
+
+  docker -->|"starts"| main
+  req -->|"installs runtime"| app
+  ci -->|"checks Python files"| repo
+```
+
 ## Prerequisites
 - Python 3.9+
 - Docker & Docker Compose (optional, for containerized deployment)
