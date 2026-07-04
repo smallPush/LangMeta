@@ -16,84 +16,78 @@ The repository follows a Ports and Adapters (hexagonal) architecture style, stru
 graph TD
   repo["LangMeta<br/>FastAPI integration with Meta Graph API"]
 
-  subgraph app["/app - Main application"]
-    main["main.py<br/>FastAPI entrypoint, routes, security, and webhooks"]
-    config["config.py<br/>Loads .env settings with Pydantic Settings"]
-
-    subgraph domain["/app/domain"]
-      models["models.py<br/>Pydantic models for posts, comments, likes, and webhooks"]
-    end
-
-    subgraph ports["/app/ports"]
-      port["social_media.py<br/>Social media contract"]
-    end
-
-    subgraph services["/app/services"]
-      service["social_media_service.py<br/>Use-case layer that delegates to the port"]
-      logger["logger_service.py<br/>In-memory API and webhook logs"]
-    end
-
-    subgraph adapters["/app/adapters"]
-      meta["meta_api.py<br/>HTTPX adapter for Meta Graph API"]
-    end
-
-    subgraph static["/app/static"]
-      logsui["logs_ui.html<br/>Simple protected logs UI"]
-    end
+  subgraph app["/app"]
+    mainApp["Application code<br/>API routes, service layer, adapter, models"]
   end
 
   subgraph jobs["Jobs and utilities"]
-    cron["cron.py<br/>Async job to fetch posts and process comments"]
-    bench["benchmark.py / benchmark_sanitize.py<br/>Flow and sanitization benchmarks"]
+    cron["cron.py<br/>Async post/comment processing job"]
+    bench["benchmark*.py<br/>Performance experiments"]
   end
 
-  subgraph tests["/tests - Verification"]
-    apiTests["test_api.py<br/>FastAPI routes, auth, errors, and webhooks"]
-    metaTests["test_meta_api.py<br/>Meta client behavior with mocks"]
-    integration["test_meta_api_integration.py<br/>Real integration tests, skipped without credentials"]
-    otherTests["Other tests<br/>cron, logger, security, benchmarks, and service"]
+  subgraph tests["/tests"]
+    testSuite["pytest suite<br/>API, adapter, security, cron, logger, and benchmarks"]
   end
 
-  subgraph mocks["/mocks - Simulated Meta responses"]
-    mockJson["*.json<br/>Expected response shapes: data[] plus optional paging"]
-  end
-
-  subgraph ops["Configuration and execution"]
-    env[".env.example<br/>Meta credentials, API key, and webhook secrets"]
-    req["requirements.txt<br/>Runtime dependencies"]
-    docker["Dockerfile + docker-compose.yml<br/>Containerized app on port 8000"]
-    ci[".github/workflows/pylint.yml<br/>Pylint CI workflow"]
-    agents["AGENTS.md<br/>Compact OpenCode guidance"]
+  subgraph support["Support files"]
+    mocks["/mocks<br/>Simulated Meta API JSON responses"]
+    configFiles[".env.example, requirements.txt, Dockerfile, docker-compose.yml<br/>Configuration and runtime setup"]
+    ci[".github/workflows/pylint.yml<br/>CI lint workflow"]
   end
 
   repo --> app
   repo --> jobs
   repo --> tests
-  repo --> mocks
-  repo --> ops
+  repo --> support
+```
 
-  main -->|"uses import-time settings"| config
-  main -->|"validates responses"| models
-  main -->|"calls use cases"| service
-  main -->|"records API and webhook activity"| logger
-  main -->|"serves protected UI"| logsui
+```mermaid
+graph LR
+  client["API caller<br/>Sends X-API-Key for protected routes"] --> main["app/main.py<br/>FastAPI routes, auth, webhooks, lifespan"]
 
-  service -->|"depends on contract"| port
-  meta -->|"implements"| port
-  service -->|"async delegation"| meta
-  meta -->|"HTTP requests"| external["Meta Graph API<br/>Posts, comments, and likes"]
+  subgraph application["Application layer"]
+    main -->|"validates request/response models"| models["app/domain/models.py<br/>Pydantic schemas"]
+    main -->|"calls use cases"| service["app/services/social_media_service.py<br/>SocialMediaService"]
+    main -->|"records requests and webhook events"| logger["app/services/logger_service.py<br/>In-memory APILogger"]
+  end
 
-  cron -->|"reuses adapter and service"| service
-  cron -->|"bounded async processing"| meta
+  subgraph hexagonal["Ports and adapters"]
+    service -->|"depends on contract"| port["app/ports/social_media.py<br/>SocialMediaPort"]
+    adapter["app/adapters/meta_api.py<br/>MetaGraphAPIClient using HTTPX"] -->|"implements"| port
+    service -->|"delegates async Meta operations"| adapter
+  end
 
-  apiTests -->|"patch objects used by app.main"| main
-  metaTests -->|"use mock responses"| mockJson
-  integration -->|"requires real credentials"| env
-  otherTests --> service
+  adapter -->|"Graph API requests"| meta["Meta Graph API<br/>Posts, comments, likes"]
+  main -->|"serves protected logs page"| logsui["app/static/logs_ui.html"]
+  main -->|"loads settings at import time"| settings["app/config.py<br/>Pydantic Settings from .env"]
+```
 
-  docker -->|"starts"| main
-  req -->|"installs runtime"| app
-  ci -->|"checks Python files"| repo
+```mermaid
+graph TD
+  subgraph verification["Verification"]
+    apiTests["tests/test_api.py<br/>FastAPI routes, auth, errors, and webhook signatures"]
+    metaTests["tests/test_meta_api.py<br/>Meta adapter behavior"]
+    integration["tests/test_meta_api_integration.py<br/>Real Meta calls, skipped without real credentials"]
+    otherTests["Other tests<br/>cron, logger, security, benchmarks, and service"]
+  end
+
+  subgraph data["Test data"]
+    mocks["mocks/*.json<br/>data[] responses plus optional paging"]
+  end
+
+  subgraph runtime["Runtime and operations"]
+    env[".env.example<br/>Meta tokens, account ID, webhook secret, API key"]
+    requirements["requirements.txt<br/>FastAPI, HTTPX, Pydantic, uvicorn"]
+    docker["Dockerfile + docker-compose.yml<br/>Containerized uvicorn on port 8000"]
+    lint["Pylint workflow<br/>pylint --disable=C,R,W $(git ls-files '*.py')"]
+  end
+
+  apiTests -->|"patch objects already imported by app.main"| appMain["app/main.py"]
+  metaTests -->|"use simulated responses"| mocks
+  integration -->|"needs non-placeholder META_ACCESS_TOKEN and META_ACCOUNT_ID"| env
+  requirements -->|"installs app runtime"| appMain
+  docker -->|"starts"| appMain
+  lint -->|"checks Python files in CI"| appMain
 ```
 
 ## Prerequisites
